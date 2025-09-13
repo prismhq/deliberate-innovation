@@ -18,7 +18,6 @@ export const WorkspaceNavbar: React.FC<WorkspaceNavbarProps> = ({ title }) => {
   const { data: session } = useSession();
 
   const userInitial = session?.user?.name?.charAt(0).toUpperCase() ?? "U";
-  console.log(session);
   return (
     <nav className="bg-background/50 backdrop-blur-sm flex h-16 items-center justify-between border-b px-4">
       <div className="flex items-center space-x-4">

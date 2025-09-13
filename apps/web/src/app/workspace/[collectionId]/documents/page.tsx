@@ -13,14 +13,6 @@ import { Button } from "@prism/ui/components/button";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { CreateDocumentDialog } from "~/components/workspace/create-document-dialog";
 import { api } from "~/trpc/react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@prism/ui/components/table";
 
 export default function DocumentsPage() {
   const params = useParams();
@@ -110,53 +102,62 @@ export default function DocumentsPage() {
               </p>
             </div>
           ) : (
-            <div className="border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Text</TableHead>
-                    <TableHead className="text-right"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {documents.map((document) => (
-                    <TableRow key={document.id}>
-                      <TableCell className="font-mono">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {documents.map((document) => (
+                <div key={document.id} className="space-y-3">
+                  {/* Card with text preview */}
+                  <div className="relative h-48 bg-gray-50 dark:bg-gray-900 border rounded-lg overflow-hidden">
+                    <div className="absolute inset-0 p-0 overflow-hidden">
+                      <div className="font-mono text-sm leading-relaxed text-gray-700 dark:text-gray-300">
                         {document.text || (
-                          <span className="text-muted-foreground italic">
-                            Not set.
+                          <span className="text-muted-foreground italic p-4 block">
+                            No content available
                           </span>
                         )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end space-x-2">
-                          <CreateDocumentDialog
-                            collectionId={collectionId}
-                            editDocument={{
-                              id: document.id,
-                              text: document.text,
-                            }}
-                            trigger={
-                              <Button variant="ghost" size="sm">
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            }
-                          />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950 dark:hover:text-red-400"
-                            onClick={() => handleDeleteDocument(document.id)}
-                            disabled={deleteDocumentMutation.isPending}
-                          >
-                            <Trash2 className="h-4 w-4" />
+                      </div>
+                    </div>
+                    {/* Blurred edges overlay */}
+                    <div className="absolute inset-0 pointer-events-none">
+                      <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-gray-50 dark:from-gray-900 via-gray-50/80 dark:via-gray-900/80 to-transparent"></div>
+                      <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-gray-50 dark:from-gray-900 via-gray-50/90 dark:via-gray-900/90 to-transparent"></div>
+                      <div className="absolute top-0 bottom-0 left-0 w-8 bg-gradient-to-r from-gray-50 dark:from-gray-900 via-gray-50/80 dark:via-gray-900/80 to-transparent"></div>
+                      <div className="absolute top-0 bottom-0 right-0 w-8 bg-gradient-to-l from-gray-50 dark:from-gray-900 via-gray-50/80 dark:via-gray-900/80 to-transparent"></div>
+                    </div>
+
+                    {/* Action buttons overlay */}
+                    <div className="absolute top-2 right-2 flex space-x-2 opacity-0 hover:opacity-100 transition-opacity">
+                      <CreateDocumentDialog
+                        collectionId={collectionId}
+                        editDocument={{
+                          id: document.id,
+                          text: document.text,
+                        }}
+                        trigger={
+                          <Button variant="secondary" size="sm">
+                            <Pencil className="h-4 w-4" />
                           </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                        }
+                      />
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950 dark:hover:text-red-400"
+                        onClick={() => handleDeleteDocument(document.id)}
+                        disabled={deleteDocumentMutation.isPending}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Title underneath */}
+                  <div className="text-center">
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                      {document.title || "Untitled Document"}
+                    </h3>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
