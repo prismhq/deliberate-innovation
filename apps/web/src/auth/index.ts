@@ -84,11 +84,11 @@ export const auth = betterAuth({
         const inviteLink =
           process.env.NODE_ENV === "development"
             ? `http://localhost:3000/accept-invitation/${data.id}`
-            : `https://prismai.sh/accept-invitation/${data.id}`;
+            : `https://deliberate-innovation-web.vercel.app/accept-invitation/${data.id}`;
         await resend.emails.send({
-          from: "Prism <alex@mail.prismai.sh>",
+          from: "Deliberate Innovation <alex@prismai.sh>",
           to: data.email,
-          subject: `You've been invited to join ${data.organization.name} on Prism`,
+          subject: `You've been invited to join ${data.organization.name} on Deliberate Innovation`,
           react: InviteEmail({
             organizationName: data.organization.name,
             inviterName: data.inviter.user.name,
@@ -103,12 +103,12 @@ export const auth = betterAuth({
     enabled: true,
     baseUrl: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   },
-  trustedOrigins: ["https://prismai.sh", "https://www.prismai.sh"],
+  trustedOrigins: ["https://deliberate-innovation-web.vercel.app"],
   emailVerification: {
     sendOnSignUp: true,
     sendVerificationEmail: async ({ user, url }) => {
       await resend.emails.send({
-        from: "Prism <alex@mail.prismai.sh>",
+        from: "Deliberate Innovation <alex@prismai.sh>",
         to: user.email,
         subject: "Verify your email address",
         text: `Click the link to verify your email: ${url}`,

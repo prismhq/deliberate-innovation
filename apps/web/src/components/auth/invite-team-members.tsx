@@ -63,6 +63,9 @@ export function InviteTeamMembers({
 
     setIsInviting(true);
 
+    let successCount = 0;
+    let failCount = 0;
+
     for (let i = 0; i < emailsToProcess.length; i++) {
       const email = emailsToProcess[i];
       setInviteStatus({
@@ -74,7 +77,11 @@ export function InviteTeamMembers({
           email: email as string,
           role: "admin",
         });
+
+        successCount++;
       } catch (error) {
+        failCount++;
+
         setInviteStatus({
           message: `Failed to invite ${email}: ${error instanceof Error ? error.message : "Unknown error"}`,
           isError: true,

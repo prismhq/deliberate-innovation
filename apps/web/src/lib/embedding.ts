@@ -52,7 +52,7 @@ export class EmbeddingClient {
         encoding_format: "float",
       });
 
-      return response.data[0].embedding;
+      return response.data[0]?.embedding ?? [];
     } catch (error) {
       console.error("Error generating embedding:", error);
       throw new Error(`Failed to generate embedding: ${error}`);
