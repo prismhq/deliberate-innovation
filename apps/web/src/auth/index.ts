@@ -103,7 +103,7 @@ export const auth = betterAuth({
     enabled: true,
     baseUrl: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   },
-  trustedOrigins: ["https://deliberate-innovation-web.vercel.app"],
+  trustedOrigins: [process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"],
   emailVerification: {
     sendOnSignUp: true,
     sendVerificationEmail: async ({ user, url }) => {

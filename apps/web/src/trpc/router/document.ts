@@ -51,7 +51,7 @@ export const documentRouter = createTRPCRouter({
           // Update document with embedding using raw SQL
           await ctx.db.$executeRaw`
             UPDATE "Document"
-            SET embeddings = ${JSON.stringify(embedding)}::vector
+            SET embedding = ${JSON.stringify(embedding)}::vector
             WHERE id = ${document.id}
           `;
         } catch (error) {
@@ -133,7 +133,7 @@ export const documentRouter = createTRPCRouter({
           // Update document with embedding using raw SQL
           await ctx.db.$executeRaw`
             UPDATE "Document"
-            SET embeddings = ${JSON.stringify(embedding)}::vector
+            SET embedding = ${JSON.stringify(embedding)}::vector
             WHERE id = ${id}
           `;
         } catch (error) {
