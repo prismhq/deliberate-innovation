@@ -11,6 +11,26 @@ import {
 } from "@prism/ui/components/card";
 import { Button } from "@prism/ui/components/button";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@prism/ui/components/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@prism/ui/components/alert-dialog";
+import { Textarea } from "@prism/ui/components/textarea";
 import { CreateDocumentDialog } from "~/components/workspace/create-document-dialog";
 import { api } from "~/trpc/react";
 
@@ -18,6 +38,14 @@ export default function DocumentsPage() {
   const params = useParams();
   const collectionId = params.collectionId as string;
   const { isLoading, collection } = useCollection();
+
+  const [editingDocument, setEditingDocument] = useState<{
+    id: string;
+    title: string;
+    text: string;
+  } | null>(null);
+  const [editText, setEditText] = useState("");
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   // Get all documents for this collection
   const { data: documents } = api.document.getByCollectionId.useQuery(
@@ -38,13 +66,37 @@ export default function DocumentsPage() {
     },
   });
 
+  const updateDocumentMutation = api.document.update.useMutation({
+    onSuccess: () => {
+      utils.document.getByCollectionId.invalidate({ collectionId });
+      setIsEditDialogOpen(false);
+      setEditingDocument(null);
+    },
+    onError: (error) => {
+      console.error("Failed to update document:", error);
+    },
+  });
+
   const handleDeleteDocument = (documentId: string) => {
-    if (
-      window.confirm(
-        "Are you sure you want to delete this document? This action cannot be undone."
-      )
-    ) {
-      deleteDocumentMutation.mutate({ id: documentId });
+    deleteDocumentMutation.mutate({ id: documentId });
+  };
+
+  const handleEditDocument = (document: {
+    id: string;
+    title: string;
+    text: string;
+  }) => {
+    setEditingDocument(document);
+    setEditText(document.text);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (editingDocument) {
+      updateDocumentMutation.mutate({
+        id: editingDocument.id,
+        text: editText,
+      });
     }
   };
 
@@ -104,13 +156,13 @@ export default function DocumentsPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {documents.map((document) => (
-                <div key={document.id} className="space-y-3">
+                <div key={document.id} className="group space-y-3">
                   {/* Card with text preview */}
-                  <div className="relative h-48 bg-gray-50 dark:bg-gray-900 border rounded-lg overflow-hidden">
-                    <div className="absolute inset-0 p-0 overflow-hidden">
+                  <div className="relative h-48 bg-gray-50 dark:bg-gray-900 border rounded-lg overflow-hidden cursor-pointer">
+                    <div className="absolute inset-0 p-2 overflow-hidden">
                       <div className="font-mono text-sm leading-relaxed text-gray-700 dark:text-gray-300">
                         {document.text || (
-                          <span className="text-muted-foreground italic p-4 block">
+                          <span className="text-muted-foreground italic">
                             No content available
                           </span>
                         )}
@@ -124,29 +176,62 @@ export default function DocumentsPage() {
                       <div className="absolute top-0 bottom-0 right-0 w-8 bg-gradient-to-l from-gray-50 dark:from-gray-900 via-gray-50/80 dark:via-gray-900/80 to-transparent"></div>
                     </div>
 
-                    {/* Action buttons overlay */}
-                    <div className="absolute top-2 right-2 flex space-x-2 opacity-0 hover:opacity-100 transition-opacity">
-                      <CreateDocumentDialog
-                        collectionId={collectionId}
-                        editDocument={{
-                          id: document.id,
-                          text: document.text,
-                        }}
-                        trigger={
-                          <Button variant="secondary" size="sm">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        }
-                      />
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950 dark:hover:text-red-400"
-                        onClick={() => handleDeleteDocument(document.id)}
-                        disabled={deleteDocumentMutation.isPending}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                    {/* Action buttons - show on hover in center with subtle overlay */}
+                    <div className="absolute inset-0 bg-white/30 dark:bg-black/30 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex space-x-3">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditDocument({
+                              id: document.id,
+                              title: document.title,
+                              text: document.text,
+                            });
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950 dark:hover:text-red-400"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                              }}
+                              disabled={deleteDocumentMutation.isPending}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Delete Document
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete &quot;
+                                {document.title || "this document"}&quot;? This
+                                action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                className="bg-red-600 text-white hover:bg-red-700 dark:bg-red-900 dark:text-white dark:hover:bg-red-800"
+                                onClick={() =>
+                                  handleDeleteDocument(document.id)
+                                }
+                              >
+                                Delete Document
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
                   </div>
 
@@ -162,6 +247,41 @@ export default function DocumentsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Document Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Edit Document</DialogTitle>
+            <DialogDescription>
+              {editingDocument?.title || "Untitled Document"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            <Textarea
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              className="min-h-[500px] font-mono text-sm resize-none"
+              placeholder="Enter document content..."
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditDialogOpen(false)}
+              disabled={updateDocumentMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={updateDocumentMutation.isPending}
+            >
+              {updateDocumentMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
