@@ -1,0 +1,226 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  extensions = [uuid_ossp(map: "uuid-ossp", schema: "extensions"), vector(schema: "extensions")]
+}
+
+model Organization {
+  id          String       @id @default(cuid())
+  name        String
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  logo        String?
+  metadata    String?
+  slug        String?      @unique
+  apiKeys     String[]     @default([]) @map("api_keys")
+  invitations Invitation[]
+  members     Member[]
+  collections Collection[]
+
+  @@index([slug])
+}
+
+model User {
+  id               String             @id @default(cuid())
+  name             String?
+  email            String?            @unique
+  emailVerified    Boolean?           @default(false) @map("email_verified")
+  image            String?
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  preferences      Json?              @default("{}")
+  metadata         Json?              @default("{}")
+  accounts         Account[]
+  sessions         Session[]
+  profile          Profile?
+  members          Member[]
+  collectionMember CollectionMember[]
+  invitations      Invitation[]
+
+  @@index([email])
+}
+
+model Profile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  firstName   String?  @map("first_name")
+  lastName    String?  @map("last_name")
+  bio         String?
+  phoneNumber String?  @map("phone_number")
+  timezone    String?  @default("UTC")
+  locale      String?  @default("en")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Member {
+  organizationId String       @map("organization_id")
+  userId         String       @map("user_id")
+  role           String
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at")
+  id             String       @id @default(cuid())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Collection {
+  id             String           @id @default(cuid())
+  name           String
+  slug           String
+  description    String?          @db.Text
+  organizationId String           @map("organization_id")
+  status         CollectionStatus @default(ACTIVE)
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  documents    Document[]
+
+  // Relations
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  collectionMembers CollectionMember[]
+
+  // Metadata
+  settings Json? @default("{}")
+  metadata Json? @default("{}")
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+}
+
+model Document {
+  id           String   @id @default(cuid())
+  text         String
+
+  embeddings  Unsupported("vector")?
+
+  collectionId String   @map("collection_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  collection   Collection    @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@index([collectionId])
+}
+
+model CollectionMember {
+  id           String   @id @default(cuid())
+  collectionId String   @map("collection_id")
+  userId       String   @map("user_id")
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, userId])
+  @@index([userId])
+  @@index([collectionId])
+}
+
+model Invitation {
+  id             String       @id @default(cuid())
+  email          String
+  organizationId String       @map("organization_id")
+  role           String       @default("admin")
+  status         String
+  expiresAt      DateTime     @map("expires_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  inviterId      String       @map("inviter_id")
+  inviter        User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([email, organizationId], map: "Invitation_email_orgId_idx")
+}
+
+model Account {
+  userId                String
+  provider              String
+  refresh_token         String?
+  access_token          String?
+  scope                 String?
+  id_token              String?
+  session_state         String?
+  createdAt             DateTime  @default(now()) @map("created_at")
+  providerAccountId     String    @map("provider_account_id")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+  password              String?
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+  id                    String    @id @default(cuid())
+  type                  String?
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Session {
+  userId               String
+  expires              DateTime
+  createdAt            DateTime @default(now()) @map("created_at")
+  sessionToken         String   @unique @map("session_token")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  ipAddress            String?  @map("ip_address")
+  userAgent            String?  @map("user_agent")
+  id                   String   @id @default(cuid())
+  activeOrganizationId String?  @map("active_organization_id")
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionToken])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  USER
+  GUEST
+}
+
+enum CollectionStatus {
+  ACTIVE
+  ARCHIVED
+  SUSPENDED
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}

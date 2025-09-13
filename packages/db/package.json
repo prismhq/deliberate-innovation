@@ -1,0 +1,27 @@
+{
+  "name": "@prism/db",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "scripts": {
+    "build": "prisma generate",
+    "db:generate": "prisma generate",
+    "generate": "prisma generate",
+    "migrate:dev": "prisma migrate dev",
+    "push": "prisma db push",
+    "studio": "prisma studio"
+  },
+  "devDependencies": {
+    "@prism/typescript-config": " *",
+    "@prism/eslint-config": " *",
+    "prisma": "^6.15.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.15.0",
+    "dotenv": "^17.2.1",
+    "zod": "^4.0.14"
+  }
+}

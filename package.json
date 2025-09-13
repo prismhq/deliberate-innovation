@@ -1,0 +1,32 @@
+{
+  "name": "deliberate-innovation",
+  "private": "true",
+  "author": "alexliu",
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+  },
+  "devDependencies": {
+    "@prism/eslint-config": "*",
+    "@prism/typescript-config": "*",
+    "dotenv": "^17.2.2",
+    "prettier": "^3.6.2",
+    "turbo": "^2.5.5"
+  },
+  "peerDependencies": {
+    "typescript": "^5.9.2"
+  },
+  "packageManager": "bun@1.2.19",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "react-icons": "^5.5.0"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "extends": "@prism/typescript-config/base.json",
+  "compilerOptions": {
+    // Some stricter flags (disabled by default)
+    "types": ["node"],
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noPropertyAccessFromIndexSignature": false
+  },
+  "include": ["index.ts", "generated/client"],
+  "exclude": ["node_modules"]
+}
