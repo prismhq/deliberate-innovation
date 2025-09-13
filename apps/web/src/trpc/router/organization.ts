@@ -64,7 +64,7 @@ export const organizationRouter = createTRPCRouter({
             create: [
               {
                 userId: ctx.session.user.id,
-                role: Role.OWNER,
+                role: "owner",
               },
             ],
           },

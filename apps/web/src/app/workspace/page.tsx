@@ -17,8 +17,6 @@ import {
   Mail,
   Send,
   Building2,
-  Key,
-  Trash2,
   ChevronDown,
 } from "lucide-react";
 import {
@@ -45,17 +43,7 @@ import { Textarea } from "@prism/ui/components/textarea";
 import { Label } from "@prism/ui/components/label";
 import { Input } from "@prism/ui/components/input";
 import { WorkspaceNavbar } from "~/components/workspace/workspace-navbar";
-import { CreateApiKeyDialog } from "~/components/workspace/create-api-key-dialog";
 import { api } from "~/trpc/react";
-import { NotNullish } from "~/lib/utils";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@prism/ui/components/table";
 
 export default function WorkspacePage() {
   const { data: session, isPending } = useSession();
@@ -84,32 +72,29 @@ export default function WorkspacePage() {
     enabled: session?.user != null,
   });
 
-  const { data: userOrganizations } = api.organization.getUserOrganizations.useQuery(
-    undefined,
-    { enabled: session?.user != null }
-  );
+  const { data: userOrganizations } =
+    api.organization.getUserOrganizations.useQuery(undefined, {
+      enabled: session?.user != null,
+    });
 
-  const setActiveOrganizationMutation = api.organization.setActiveOrganization.useMutation({
-    onSuccess: () => {
-      // Don't reset the loading state - keep it until page reload completes
-      // Refresh the active organization and related data
-      window.location.reload();
-    },
-    onError: (error) => {
-      console.error("Failed to switch organization:", error);
-      setSwitchingToOrgId(null); // Only reset loading state on error
-    },
-  });
+  const setActiveOrganizationMutation =
+    api.organization.setActiveOrganization.useMutation({
+      onSuccess: () => {
+        // Don't reset the loading state - keep it until page reload completes
+        // Refresh the active organization and related data
+        window.location.reload();
+      },
+      onError: (error) => {
+        console.error("Failed to switch organization:", error);
+        setSwitchingToOrgId(null); // Only reset loading state on error
+      },
+    });
 
   const { data: collections } = api.organization.getCollections.useQuery(
     { organizationId: activeOrganization?.id ?? "" },
     { enabled: activeOrganization != null && activeOrganization.id != null }
   );
   const { data: members } = api.organization.getMembers.useQuery(
-    { organizationId: activeOrganization?.id ?? "" },
-    { enabled: activeOrganization != null && activeOrganization.id != null }
-  );
-  const { data: apiKeys } = api.organization.getApiKeys.useQuery(
     { organizationId: activeOrganization?.id ?? "" },
     { enabled: activeOrganization != null && activeOrganization.id != null }
   );
@@ -147,7 +132,9 @@ export default function WorkspacePage() {
       setDeleteApiKeyId(null);
       // Refresh API keys list without page reload
       if (activeOrganization?.id) {
-        utils.organization.getApiKeys.invalidate({ organizationId: activeOrganization.id });
+        utils.organization.getApiKeys.invalidate({
+          organizationId: activeOrganization.id,
+        });
       }
     },
     onError: (error) => {
@@ -259,11 +246,6 @@ export default function WorkspacePage() {
     } finally {
       setIsSendingInvites(false);
     }
-  };
-
-  const handleDeleteApiKey = (apiKeyId: string) => {
-    setDeleteApiKeyId(apiKeyId);
-    setIsDeleteDialogOpen(true);
   };
 
   const confirmDeleteApiKey = () => {
@@ -387,13 +369,15 @@ export default function WorkspacePage() {
                 {userOrganizations && userOrganizations.length > 1 ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button 
+                      <button
                         className="flex items-center gap-2 text-3xl font-bold hover:opacity-80 transition-opacity disabled:opacity-50"
                         disabled={switchingToOrgId !== null}
                       >
                         {switchingToOrgId ? (
                           <>
-                            {userOrganizations.find(org => org.id === switchingToOrgId)?.name || "Switching..."}
+                            {userOrganizations.find(
+                              (org) => org.id === switchingToOrgId
+                            )?.name || "Switching..."}
                             <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                           </>
                         ) : (
@@ -409,7 +393,10 @@ export default function WorkspacePage() {
                         <DropdownMenuItem
                           key={org.id}
                           onClick={() => {
-                            if (org.id !== activeOrganization.id && switchingToOrgId === null) {
+                            if (
+                              org.id !== activeOrganization.id &&
+                              switchingToOrgId === null
+                            ) {
                               setSwitchingToOrgId(org.id);
                               setActiveOrganizationMutation.mutate({
                                 organizationId: org.id,
@@ -576,7 +563,6 @@ export default function WorkspacePage() {
                 </CardContent>
               </Card>
 
-
               {/* Team Members Section */}
               <Card>
                 <CardHeader>
@@ -641,40 +627,39 @@ export default function WorkspacePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {members
-                      ?.map((member) => {
-                        const memberInitial = (
-                          member?.name?.charAt(0) ||
-                          member?.email?.charAt(0) ||
-                          "U"
-                        ).toUpperCase();
-                        return (
-                          <Card key={member.id}>
-                            <CardContent className="flex items-center justify-between p-6">
-                              <div className="flex items-center space-x-3">
-                                <Avatar className="h-10 w-10">
-                                  <AvatarImage
-                                    src={member?.image ?? undefined}
-                                    alt={member?.name ?? member?.email ?? "User"}
-                                    referrerPolicy="no-referrer"
-                                  />
-                                  <AvatarFallback className="bg-blue-600 text-white">
-                                    {memberInitial}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <p className="font-medium">
-                                    {member?.name || member?.email || "Member"}
-                                  </p>
-                                  <p className="text-sm text-muted-foreground">
-                                    {member?.email}
-                                  </p>
-                                </div>
+                    {members?.map((member) => {
+                      const memberInitial = (
+                        member?.name?.charAt(0) ||
+                        member?.email?.charAt(0) ||
+                        "U"
+                      ).toUpperCase();
+                      return (
+                        <Card key={member.id}>
+                          <CardContent className="flex items-center justify-between p-6">
+                            <div className="flex items-center space-x-3">
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage
+                                  src={member?.image ?? undefined}
+                                  alt={member?.name ?? member?.email ?? "User"}
+                                  referrerPolicy="no-referrer"
+                                />
+                                <AvatarFallback className="bg-blue-600 text-white">
+                                  {memberInitial}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium">
+                                  {member?.name || member?.email || "Member"}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {member?.email}
+                                </p>
                               </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
