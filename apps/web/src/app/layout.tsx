@@ -5,6 +5,7 @@ import { type Metadata } from "next";
 import { TRPCReactProvider } from "../trpc/react";
 import { HydrateClient } from "../trpc/server";
 import { Squares } from "~/components/landing-page/squares-background";
+import { ThemeProvider } from "~/components/theme-provider";
 
 export const metadata: Metadata = {
   title: "Delibrate Innovation",
@@ -33,19 +34,20 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body>
-        {/* Animated Squares Background */}
-        <div className="fixed inset-0 -z-10">
-          <Squares
-            direction="diagonal"
-            speed={0}
-            squareSize={60}
-            borderColor="#e5e7eb"
-          />
-        </div>
+        <ThemeProvider>
+          {/* Animated Squares Background */}
+          <div className="fixed inset-0 -z-10">
+            <Squares
+              direction="diagonal"
+              speed={0}
+              squareSize={60}
+            />
+          </div>
 
-        <TRPCReactProvider>
-          <HydrateClient>{children}</HydrateClient>
-        </TRPCReactProvider>
+          <TRPCReactProvider>
+            <HydrateClient>{children}</HydrateClient>
+          </TRPCReactProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

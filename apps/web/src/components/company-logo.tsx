@@ -4,6 +4,7 @@ import type * as React from "react";
 import Link from "next/link";
 import { cn } from "../lib/utils";
 import Image from "next/image";
+import { useTheme } from "./theme-provider";
 
 interface CompanyLogoProps extends React.HTMLAttributes<HTMLDivElement> {
   showName?: boolean;
@@ -18,6 +19,8 @@ export function CompanyLogo({
   className,
   ...props
 }: CompanyLogoProps) {
+  const { theme } = useTheme();
+  const logoSrc = theme === "dark" ? "/images/favicon-dark.png" : "/images/favicon-light.png";
   return (
     <Link href={href}>
       <div
@@ -25,9 +28,8 @@ export function CompanyLogo({
         {...props}
       >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md">
-          {/* Light mode logo */}
           <Image
-            src="/images/favicon-light.png"
+            src={logoSrc}
             alt="Delibrate Innovation Logo"
             width={32}
             height={32}

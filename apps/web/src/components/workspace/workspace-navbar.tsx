@@ -8,6 +8,7 @@ import {
 } from "@prism/ui/components/avatar";
 import { CompanyLogo } from "~/components/company-logo";
 import { SignOutButton } from "~/components/auth/sign-out-button";
+import { ThemeToggle } from "~/components/theme-toggle";
 
 interface WorkspaceNavbarProps {
   title?: string;
@@ -33,6 +34,8 @@ export const WorkspaceNavbar: React.FC<WorkspaceNavbarProps> = ({ title }) => {
       </div>
 
       <div className="flex items-center space-x-2">
+        <ThemeToggle />
+
         <SignOutButton />
 
         <Avatar className="h-9 w-9 cursor-pointer md:h-10 md:w-10">

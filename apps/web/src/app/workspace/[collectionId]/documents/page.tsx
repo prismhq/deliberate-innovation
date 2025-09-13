@@ -93,14 +93,9 @@ export default function DocumentsPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="prism-text-l-semibold">
-                Documented Primary Interactions
-              </CardTitle>
-              <CardDescription>
-                Access DPIs for {collection.name}
-              </CardDescription>
-            </div>
+            <CardTitle className="prism-text-l-semibold">
+              Documented Primary Interactions
+            </CardTitle>
             <CreateDocumentDialog
               collectionId={collectionId}
               trigger={

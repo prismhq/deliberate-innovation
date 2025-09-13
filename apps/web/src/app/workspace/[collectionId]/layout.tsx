@@ -18,6 +18,7 @@ import { signOut } from "~/auth/client";
 import { useRouter } from "next/navigation";
 import { CollectionContext } from "./collection-context";
 import { api } from "~/trpc/react";
+import { ThemeToggle } from "~/components/theme-toggle";
 
 const sidebarItems = [
   { id: "overview", label: "Overview", icon: Eye, href: "" },
@@ -170,6 +171,8 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
             </div>
 
             <div className="flex items-center space-x-2">
+              <ThemeToggle />
+
               <SignOutButton />
 
               <Avatar className="h-9 w-9 cursor-pointer">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect } from "react";
+import { useTheme } from "../theme-provider";
 
 interface SquaresProps {
   direction?: "right" | "left" | "up" | "down" | "diagonal";
@@ -13,7 +14,7 @@ interface SquaresProps {
 export function Squares({
   direction = "right",
   speed = 1,
-  borderColor = "#333",
+  borderColor,
   squareSize = 40,
   className,
 }: SquaresProps) {
@@ -22,6 +23,12 @@ export function Squares({
   const numSquaresX = useRef<number>(0);
   const numSquaresY = useRef<number>(0);
   const gridOffset = useRef({ x: 0, y: 0 });
+  const { theme } = useTheme();
+
+  // Set theme-aware colors
+  const canvasBackground = theme === "dark" ? "#060606" : "#ffffff";
+  const defaultBorderColor = theme === "dark" ? "#333" : "#e5e7eb";
+  const actualBorderColor = borderColor || defaultBorderColor;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -31,7 +38,7 @@ export function Squares({
     if (!ctx) return;
 
     // Set canvas background
-    canvas.style.background = "#ffffff";
+    canvas.style.background = canvasBackground;
 
     const resizeCanvas = () => {
       canvas.width = canvas.offsetWidth;
@@ -56,7 +63,7 @@ export function Squares({
           const squareX = x - (gridOffset.current.x % squareSize);
           const squareY = y - (gridOffset.current.y % squareSize);
 
-          ctx.strokeStyle = borderColor;
+          ctx.strokeStyle = actualBorderColor;
           ctx.strokeRect(squareX, squareY, squareSize, squareSize);
         }
       }
@@ -69,8 +76,10 @@ export function Squares({
         canvas.height / 2,
         Math.sqrt(Math.pow(canvas.width, 2) + Math.pow(canvas.height, 2)) / 2
       );
-      gradient.addColorStop(0, "rgba(255, 255, 255, 0)");
-      gradient.addColorStop(1, "#ffffff");
+      const gradientColor = theme === "dark" ? "rgba(6, 6, 6, 0)" : "rgba(255, 255, 255, 0)";
+      const gradientEndColor = theme === "dark" ? "#060606" : "#ffffff";
+      gradient.addColorStop(0, gradientColor);
+      gradient.addColorStop(1, gradientEndColor);
 
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -122,7 +131,7 @@ export function Squares({
         cancelAnimationFrame(requestRef.current);
       }
     };
-  }, [direction, speed, borderColor, squareSize]);
+  }, [direction, speed, actualBorderColor, squareSize, canvasBackground, theme]);
 
   return (
     <canvas

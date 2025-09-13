@@ -12,6 +12,7 @@ import {
 } from "@prism/ui/components/drawer";
 import { Menu } from "lucide-react";
 import { CompanyLogo } from "~/components/company-logo";
+import { ThemeToggle } from "~/components/theme-toggle";
 
 interface HeaderProps {
   className?: string;
@@ -31,6 +32,8 @@ export default function Header({ className }: HeaderProps) {
 
           {/* Desktop CTAs */}
           <div className="hidden md:flex items-center space-x-4">
+            <ThemeToggle />
+
             <Link href="/login">
               <Button variant="ghost" size="sm">
                 Login
@@ -58,6 +61,10 @@ export default function Header({ className }: HeaderProps) {
 
                 {/* Mobile CTAs */}
                 <div className="space-y-3 pt-4 border-t border-border">
+                  <div className="flex justify-center pb-2">
+                    <ThemeToggle />
+                  </div>
+
                   <Link href="/login">
                     <Button variant="outline" className="w-full">
                       Login
