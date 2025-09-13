@@ -7,8 +7,8 @@ import { HydrateClient } from "../trpc/server";
 import { Squares } from "~/components/landing-page/squares-background";
 
 export const metadata: Metadata = {
-  title: "Prism Auth",
-  description: "Authentication for browser agents",
+  title: "Delibrate Innovation",
+  description: "Find patterns in your Documented Primary Interactions",
   icons: {
     icon: [
       {
@@ -42,7 +42,7 @@ export default function RootLayout({
             borderColor="#333"
           />
         </div>
-        
+
         <TRPCReactProvider>
           <HydrateClient>{children}</HydrateClient>
         </TRPCReactProvider>

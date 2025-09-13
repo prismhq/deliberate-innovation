@@ -90,16 +90,15 @@ export default function DocumentsPage() {
 
   return (
     <div className="space-y-[var(--spacing-xl)]">
-      {/* Collection Documents */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="prism-text-l-semibold">
-                Collection Documents
+                Documented Primary Interactions
               </CardTitle>
               <CardDescription>
-                Access documents for {collection.name}
+                Access DPIs for {collection.name}
               </CardDescription>
             </div>
             <CreateDocumentDialog

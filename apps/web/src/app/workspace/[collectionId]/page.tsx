@@ -96,25 +96,6 @@ export default function CollectionPage() {
         </CardContent>
       </Card>
 
-      {/* Connect to Your AI Agent */}
-      <Card>
-        <CardContent className="flex items-center justify-between p-6">
-          <div>
-            <CardTitle className="prism-text-l-semibold mb-[var(--spacing-s)]">
-              Connect to your AI agent
-            </CardTitle>
-            <CardDescription>
-              Integrate your documents with your development workflow
-            </CardDescription>
-          </div>
-          <Link href={`/workspace/${collectionId}/connect`}>
-            <Button>
-              Connect
-              <ArrowRight className="ml-[var(--spacing-s)] h-4 w-4" />
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
     </div>
   );
 }

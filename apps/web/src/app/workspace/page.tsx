@@ -576,81 +576,6 @@ export default function WorkspacePage() {
                 </CardContent>
               </Card>
 
-              {/* API Keys Section */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>API Keys</CardTitle>
-                    <CreateApiKeyDialog
-                      organizationId={activeOrganization.id}
-                      trigger={
-                        <Button>
-                          <Key className="mr-2 h-4 w-4" />
-                          Add API Key
-                        </Button>
-                      }
-                    />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {!apiKeys ? (
-                    <div className="py-8 text-center">
-                      <div className="text-muted-foreground">
-                        Loading API keys...
-                      </div>
-                    </div>
-                  ) : apiKeys.length === 0 ? (
-                    <div className="py-8 text-center">
-                      <p className="text-muted-foreground">No API keys yet</p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Create an API key to access your organization&apos;s
-                        resources programmatically
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="border overflow-hidden">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Key</TableHead>
-                            <TableHead>Created</TableHead>
-                            <TableHead className="text-right"></TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {apiKeys.filter(NotNullish).map((apiKey) => (
-                            <TableRow key={apiKey.id}>
-                              <TableCell className="font-medium">
-                                {apiKey.name}
-                              </TableCell>
-                              <TableCell className="font-mono text-muted-foreground">
-                                {apiKey.maskedKey}
-                              </TableCell>
-                              <TableCell className="text-muted-foreground">
-                                {new Date(
-                                  apiKey.createdAt
-                                ).toLocaleDateString()}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950 dark:hover:text-red-400"
-                                  onClick={() => handleDeleteApiKey(apiKey.id)}
-                                  disabled={deleteApiKeyMutation.isPending}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
 
               {/* Team Members Section */}
               <Card>
@@ -717,19 +642,6 @@ export default function WorkspacePage() {
                 <CardContent>
                   <div className="space-y-4">
                     {members
-                      ?.filter((member) => {
-                        // Only hide specific members if org ID is NOT the special ID
-                        if (activeOrganization?.id !== "safjdksaolfjdkosajfdko;sajfkod") {
-                          const hiddenEmails = [
-                            "ayxliu19@gmail.com",
-                            "rajit@prismai.sh",
-                            "landkittipak@gmail.com"
-                          ];
-                          return !hiddenEmails.includes(member?.email || "");
-                        }
-                        // If org ID matches the special ID, show all members
-                        return true;
-                      })
                       ?.map((member) => {
                         const memberInitial = (
                           member?.name?.charAt(0) ||
