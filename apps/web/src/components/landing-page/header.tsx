@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Button } from "@prism/ui/components/button";
 import {
   Drawer,
@@ -23,7 +22,7 @@ export default function Header({ className }: HeaderProps) {
 
   return (
     <header
-      className={`fixed top-0 w-full z-50 border-b border-white/20 bg-background transition-transform duration-300 ease-in-out ${className || ""}`}
+      className={`fixed top-0 w-full z-50 border-b border-border bg-background transition-transform duration-300 ease-in-out ${className || ""}`}
     >
       <div className="mx-auto max-w-wide px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">

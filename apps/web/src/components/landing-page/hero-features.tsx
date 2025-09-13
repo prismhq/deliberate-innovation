@@ -23,6 +23,9 @@ export default function HeroFeatures() {
             <Link href="/signup">
               <Button size="lg">Get Started</Button>
             </Link>
+            <Link href="https://www.amazon.com/Heart-Innovation-Navigating-Authentic-Demand/dp/152300570X" target="_blank" rel="noopener noreferrer">
+              <Button size="lg" variant="outline">View Book</Button>
+            </Link>
           </div>
         </div>
 
@@ -32,7 +35,7 @@ export default function HeroFeatures() {
             alt="Deliberate Innovation"
             width={600}
             height={400}
-            className="rounded-lg shadow-2xl"
+            className="border"
           />
         </div>
       </div>

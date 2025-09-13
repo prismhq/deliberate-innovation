@@ -39,7 +39,7 @@ export default function RootLayout({
             direction="diagonal"
             speed={0}
             squareSize={60}
-            borderColor="#333"
+            borderColor="#e5e7eb"
           />
         </div>
 
