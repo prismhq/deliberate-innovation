@@ -1,16 +1,11 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
-  extensions = [uuid_ossp(map: "uuid-ossp", schema: "extensions"), vector(schema: "extensions")]
 }
 
 model Organization {
@@ -22,9 +17,9 @@ model Organization {
   metadata    String?
   slug        String?      @unique
   apiKeys     String[]     @default([]) @map("api_keys")
+  collections Collection[]
   invitations Invitation[]
   members     Member[]
-  collections Collection[]
 
   @@index([slug])
 }
@@ -40,11 +35,11 @@ model User {
   preferences      Json?              @default("{}")
   metadata         Json?              @default("{}")
   accounts         Account[]
-  sessions         Session[]
-  profile          Profile?
-  members          Member[]
   collectionMember CollectionMember[]
   invitations      Invitation[]
+  members          Member[]
+  profile          Profile?
+  sessions         Session[]
 
   @@index([email])
 }
@@ -60,9 +55,7 @@ model Profile {
   locale      String?  @default("en")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Member {
@@ -77,55 +70,46 @@ model Member {
 }
 
 model Collection {
-  id             String           @id @default(cuid())
-  name           String
-  slug           String
-  description    String?          @db.Text
-  organizationId String           @map("organization_id")
-  status         CollectionStatus @default(ACTIVE)
-  createdAt      DateTime         @default(now()) @map("created_at")
-  updatedAt      DateTime         @updatedAt @map("updated_at")
-  documents    Document[]
-
-  // Relations
+  id                String             @id @default(cuid())
+  name              String
+  slug              String
+  description       String?
+  organizationId    String             @map("organization_id")
+  status            CollectionStatus   @default(ACTIVE)
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  settings          Json?              @default("{}")
+  metadata          Json?              @default("{}")
   organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   collectionMembers CollectionMember[]
-
-  // Metadata
-  settings Json? @default("{}")
-  metadata Json? @default("{}")
+  documents         Document[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
 }
 
 model Document {
-  id           String   @id @default(cuid())
+  id           String                 @id @default(cuid())
+  title        String
   text         String
-
-  embeddings  Unsupported("vector")?
-
-  collectionId String   @map("collection_id")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  collection   Collection    @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  collectionId String                 @map("collection_id")
+  createdAt    DateTime               @default(now()) @map("created_at")
+  updatedAt    DateTime               @updatedAt @map("updated_at")
+  embedding    Unsupported("vector")?
+  collection   Collection             @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 
   @@index([collectionId])
 }
 
 model CollectionMember {
-  id           String   @id @default(cuid())
-  collectionId String   @map("collection_id")
-  userId       String   @map("user_id")
-  role         Role     @default(USER)
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String     @id @default(cuid())
+  collectionId String     @map("collection_id")
+  userId       String     @map("user_id")
+  role         Role       @default(USER)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([collectionId, userId])
   @@index([userId])

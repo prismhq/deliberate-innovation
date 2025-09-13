@@ -20,6 +20,7 @@ import { Label } from "@prism/ui/components/label";
 import { toast } from "sonner";
 
 const documentSchema = z.object({
+  title: z.string().min(1, "Title is required"),
   text: z.string().optional(),
 });
 
@@ -31,6 +32,7 @@ interface CreateDocumentDialogProps {
   trigger: React.ReactNode;
   editDocument?: {
     id: string;
+    title?: string | null;
     text?: string | null;
   };
 }
@@ -48,6 +50,7 @@ export function CreateDocumentDialog({
   const form = useForm<DocumentFormValues>({
     resolver: zodResolver(documentSchema),
     defaultValues: {
+      title: editDocument?.title || "",
       text: editDocument?.text || "",
     },
   });
@@ -87,6 +90,7 @@ export function CreateDocumentDialog({
       // Update existing document
       const updateData = {
         id: editDocument.id,
+        title: data.title,
         text: data.text || "",
       };
       updateDocumentMutation.mutate(updateData);
@@ -94,6 +98,7 @@ export function CreateDocumentDialog({
       // Create new document
       const filteredData = {
         collectionId,
+        title: data.title,
         text: data.text || "",
       };
       createDocumentMutation.mutate(filteredData);
@@ -118,6 +123,21 @@ export function CreateDocumentDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="title">Title</Label>
+            <Input
+              id="title"
+              type="text"
+              placeholder="Enter document title"
+              {...form.register("title")}
+              disabled={isLoading}
+            />
+            {form.formState.errors.title && (
+              <p className="text-sm text-red-500">
+                {form.formState.errors.title.message}
+              </p>
+            )}
+          </div>
           <div className="space-y-2">
             <Label htmlFor="text">Text</Label>
             <Input

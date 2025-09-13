@@ -10,7 +10,6 @@ import {
   CardTitle,
 } from "@prism/ui/components/card";
 import { Button } from "@prism/ui/components/button";
-import { ArrowRight } from "lucide-react";
 import { api } from "~/trpc/react";
 
 export default function CollectionPage() {
@@ -58,7 +57,7 @@ export default function CollectionPage() {
       <Card>
         <CardHeader>
           <CardTitle className="prism-text-l-semibold">
-            Collection Overview
+            Collection Situation
           </CardTitle>
           <CardDescription>
             General information about this collection
@@ -95,7 +94,6 @@ export default function CollectionPage() {
           </div>
         </CardContent>
       </Card>
-
     </div>
   );
 }

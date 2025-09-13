@@ -21,20 +21,11 @@ import {
   TableHeader,
   TableRow,
 } from "@prism/ui/components/table";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@prism/ui/components/sheet";
 
 export default function DocumentsPage() {
   const params = useParams();
   const collectionId = params.collectionId as string;
   const { isLoading, collection } = useCollection();
-  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(
-    null
-  );
 
   // Get all documents for this collection
   const { data: documents } = api.document.getByCollectionId.useQuery(
@@ -123,26 +114,20 @@ export default function DocumentsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Document</TableHead>
                     <TableHead>Text</TableHead>
                     <TableHead className="text-right"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {documents.map((document) => (
-                    <TableRow
-                      key={document.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => setSelectedDocumentId(document.id)}
-                    >
-                      <TableCell className="font-mono max-w-32 truncate">
+                    <TableRow key={document.id}>
+                      <TableCell className="font-mono">
                         {document.text || (
                           <span className="text-muted-foreground italic">
                             Not set.
                           </span>
                         )}
                       </TableCell>
-
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end space-x-2">
                           <CreateDocumentDialog
@@ -152,11 +137,7 @@ export default function DocumentsPage() {
                               text: document.text,
                             }}
                             trigger={
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={(e) => e.stopPropagation()}
-                              >
+                              <Button variant="ghost" size="sm">
                                 <Pencil className="h-4 w-4" />
                               </Button>
                             }
@@ -165,10 +146,7 @@ export default function DocumentsPage() {
                             variant="ghost"
                             size="sm"
                             className="hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950 dark:hover:text-red-400"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteDocument(document.id);
-                            }}
+                            onClick={() => handleDeleteDocument(document.id)}
                             disabled={deleteDocumentMutation.isPending}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -183,29 +161,6 @@ export default function DocumentsPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* Sessions Sheet */}
-      <Sheet
-        open={!!selectedDocumentId}
-        onOpenChange={(open) => !open && setSelectedDocumentId(null)}
-      >
-        <SheetContent className="w-[400px] sm:w-[540px]">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <span>Sessions</span>
-              {selectedDocumentId && (
-                <>
-                  <span>•</span>
-                  <span className="text-muted-foreground font-normal">
-                    {documents?.find((d) => d.id === selectedDocumentId)
-                      ?.text || "Unknown"}
-                  </span>
-                </>
-              )}
-            </SheetTitle>
-          </SheetHeader>
-        </SheetContent>
-      </Sheet>
     </div>
   );
 }

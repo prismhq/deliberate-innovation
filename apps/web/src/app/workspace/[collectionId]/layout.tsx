@@ -13,7 +13,7 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@prism/ui/components/avatar";
-import { Eye, ChevronLeft, LogOut, Cable, FileText } from "lucide-react";
+import { Eye, ChevronLeft, LogOut, FileText } from "lucide-react";
 import { signOut } from "~/auth/client";
 import { useRouter } from "next/navigation";
 import { CollectionContext } from "./collection-context";
@@ -21,7 +21,7 @@ import { api } from "~/trpc/react";
 import { ThemeToggle } from "~/components/theme-toggle";
 
 const sidebarItems = [
-  { id: "overview", label: "Overview", icon: Eye, href: "" },
+  { id: "overview", label: "Situation", icon: Eye, href: "" },
   { id: "documents", label: "Documents", icon: FileText, href: "/documents" },
 ];
 
@@ -84,7 +84,7 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
       if (item.href === "" && currentPath === collectionId) return true;
       return item.href.substring(1) === currentPath;
     });
-    return currentItem?.label || "Overview";
+    return currentItem?.label || "Situation";
   };
 
   return (

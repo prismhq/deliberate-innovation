@@ -13,10 +13,7 @@
         "GOOGLE_CLIENT_ID",
         "GOOGLE_CLIENT_SECRET",
         "RESEND_API_KEY",
-        "AGENTMAIL_API_KEY",
-        "OPENAI_API_KEY",
-        "KERNEL_API_KEY",
-        "BROWSER_USE_API_KEY"
+        "OPENAI_API_KEY"
       ]
     }
   }

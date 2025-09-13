@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/trpc";
+import { EmbeddingClient } from "~/lib/embedding";
+import { env } from "~/env";
 
 export const documentRouter = createTRPCRouter({
   create: protectedProcedure
@@ -7,6 +9,7 @@ export const documentRouter = createTRPCRouter({
       z.object({
         collectionId: z.string(),
         text: z.string(),
+        title: z.string(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -28,19 +31,43 @@ export const documentRouter = createTRPCRouter({
         throw new Error("Access denied");
       }
 
-      // Create new document
-      return ctx.db.document.create({
+      // Create new document first
+      const document = await ctx.db.document.create({
         data: {
           collectionId: input.collectionId,
           text: input.text,
+          title: input.title,
         },
       });
+
+      // Generate and store embedding if text is provided
+      if (input.text.trim() && process.env.OPENAI_API_KEY) {
+        try {
+          const embeddingClient = new EmbeddingClient({
+            apiKey: process.env.OPENAI_API_KEY,
+          });
+          const embedding = await embeddingClient.generateEmbedding(input.text);
+
+          // Update document with embedding using raw SQL
+          await ctx.db.$executeRaw`
+            UPDATE "Document"
+            SET embeddings = ${JSON.stringify(embedding)}::vector
+            WHERE id = ${document.id}
+          `;
+        } catch (error) {
+          console.error("Failed to generate embedding:", error);
+          // Document is still created successfully even if embedding fails
+        }
+      }
+
+      return document;
     }),
 
   update: protectedProcedure
     .input(
       z.object({
         id: z.string(),
+        title: z.string().optional(),
         userName: z.string().optional(),
         text: z.string(),
         domain: z.string().optional(),
@@ -79,14 +106,43 @@ export const documentRouter = createTRPCRouter({
           }
           return acc;
         },
-        {} as Record<string, any>
+        {} as Record<string, string | null>
       );
 
-      // Update the document
-      return ctx.db.document.update({
+      // Update the document first
+      const updatedDocument = await ctx.db.document.update({
         where: { id },
         data: filteredUpdateData,
       });
+
+      // Generate embedding if text is being updated
+      if (
+        filteredUpdateData.text &&
+        typeof filteredUpdateData.text === "string" &&
+        filteredUpdateData.text.trim() &&
+        env.OPENAI_API_KEY
+      ) {
+        try {
+          const embeddingClient = new EmbeddingClient({
+            apiKey: env.OPENAI_API_KEY!,
+          });
+          const embedding = await embeddingClient.generateEmbedding(
+            filteredUpdateData.text
+          );
+
+          // Update document with embedding using raw SQL
+          await ctx.db.$executeRaw`
+            UPDATE "Document"
+            SET embeddings = ${JSON.stringify(embedding)}::vector
+            WHERE id = ${id}
+          `;
+        } catch (error) {
+          console.error("Failed to generate embedding:", error);
+          // Continue with update even if embedding fails
+        }
+      }
+
+      return updatedDocument;
     }),
 
   delete: protectedProcedure
