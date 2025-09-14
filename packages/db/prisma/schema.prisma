@@ -83,6 +83,7 @@ model Collection {
   organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   collectionMembers CollectionMember[]
   documents         Document[]
+  situationDiagrams SituationDiagram[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -97,6 +98,23 @@ model Document {
   updatedAt    DateTime               @updatedAt @map("updated_at")
   embedding    Unsupported("vector")?
   collection   Collection             @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@index([collectionId])
+}
+
+model SituationDiagram {
+  id           String     @id @default(cuid())
+  title        String
+  actions      String[]   @default([])
+  relations    String[]   @default([])
+  resources    String[]   @default([])
+  channels     String[]   @default([])
+  positionX    Float      @default(0) @map("position_x")
+  positionY    Float      @default(0) @map("position_y")
+  collectionId String     @map("collection_id")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 
   @@index([collectionId])
 }

@@ -1,4 +1,6 @@
 "use client";
+
+import React, { useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useCollection } from "./collection-context";
@@ -10,18 +12,189 @@ import {
   CardTitle,
 } from "@prism/ui/components/card";
 import { Button } from "@prism/ui/components/button";
+import { Plus } from "lucide-react";
 import { api } from "~/trpc/react";
+import {
+  ReactFlow,
+  useNodesState,
+  useEdgesState,
+  addEdge,
+  type Connection,
+  type Edge,
+  type Node,
+} from "@reactflow/core";
+import { Controls } from "@reactflow/controls";
+import { MiniMap } from "@reactflow/minimap";
+import "@reactflow/core/dist/style.css";
+import { CollectionInfoCard } from "~/components/workspace/collection-info-card";
+import {
+  SituationDiagramNode,
+  type SituationDiagramData,
+} from "~/components/situation-diagrams/situation-diagram-node";
+import { SituationDiagramDialog } from "~/components/situation-diagrams/situation-diagram-dialog";
+import { Squares } from "~/components/landing-page/squares-background";
+
+const nodeTypes = {
+  situationDiagram: SituationDiagramNode,
+};
 
 export default function CollectionPage() {
   const params = useParams();
   const collectionId = params.collectionId as string;
   const { isLoading, collection } = useCollection();
+  const utils = api.useUtils();
 
-  // Get all documents for this collection (for total count)
-  const { data: documents } = api.document.getByCollectionId.useQuery(
-    { collectionId },
-    { enabled: !!collectionId }
+  // Dialog state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingDiagram, setEditingDiagram] =
+    useState<SituationDiagramData | null>(null);
+  const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
+
+  // React Flow state
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+
+  // Track next position for new nodes
+  const nextPositionRef = useRef({ x: 100, y: 100 });
+
+  // Fetch situation diagrams
+  const { data: situationDiagrams, refetch } =
+    api.situationDiagrams.getByCollectionId.useQuery(
+      { collectionId },
+      { enabled: !!collectionId }
+    );
+
+  // Mutations
+  const createDiagram = api.situationDiagrams.create.useMutation({
+    onSuccess: () => {
+      void refetch();
+    },
+  });
+
+  const updateDiagram = api.situationDiagrams.update.useMutation({
+    onSuccess: () => {
+      void refetch();
+    },
+  });
+
+  const deleteDiagram = api.situationDiagrams.delete.useMutation({
+    onSuccess: () => {
+      void refetch();
+    },
+  });
+
+  // Update collection description for situation context
+  const updateCollection = api.collections.update.useMutation({
+    onSuccess: () => {
+      void utils.collections.getById.invalidate({ collectionId });
+    },
+  });
+
+  // Convert database diagrams to React Flow nodes
+  const convertToNodes = useCallback((diagrams: typeof situationDiagrams) => {
+    if (!diagrams) return [];
+
+    return diagrams.map((diagram: any) => ({
+      id: diagram.id,
+      type: "situationDiagram",
+      position: { x: diagram.positionX, y: diagram.positionY },
+      data: {
+        id: diagram.id,
+        title: diagram.title,
+        actions: diagram.actions,
+        relations: diagram.relations,
+        resources: diagram.resources,
+        channels: diagram.channels,
+        onEdit: handleEditDiagram,
+        onDelete: handleDeleteDiagram,
+      },
+    }));
+  }, []);
+
+  // Update nodes when data changes
+  React.useEffect(() => {
+    if (situationDiagrams) {
+      setNodes(convertToNodes(situationDiagrams));
+    }
+  }, [situationDiagrams, convertToNodes, setNodes]);
+
+  const onConnect = useCallback(
+    (params: Edge | Connection) => setEdges((eds) => addEdge(params, eds)),
+    [setEdges]
   );
+
+  const handleCreateDiagram = () => {
+    setEditingDiagram(null);
+    setDialogMode("create");
+    setDialogOpen(true);
+  };
+
+  const handleEditDiagram = useCallback(
+    (id: string) => {
+      const diagram = situationDiagrams?.find((d: any) => d.id === id);
+      if (diagram) {
+        setEditingDiagram(diagram);
+        setDialogMode("edit");
+        setDialogOpen(true);
+      }
+    },
+    [situationDiagrams]
+  );
+
+  const handleDeleteDiagram = useCallback(
+    (id: string) => {
+      if (confirm("Are you sure you want to delete this situation diagram?")) {
+        deleteDiagram.mutate({ id });
+      }
+    },
+    [deleteDiagram]
+  );
+
+  const handleSaveDiagram = (data: Omit<SituationDiagramData, "id">) => {
+    if (dialogMode === "create") {
+      createDiagram.mutate({
+        ...data,
+        collectionId,
+        positionX: nextPositionRef.current.x,
+        positionY: nextPositionRef.current.y,
+      });
+      // Update next position
+      nextPositionRef.current = {
+        x: nextPositionRef.current.x + 50,
+        y: nextPositionRef.current.y + 50,
+      };
+    } else if (editingDiagram) {
+      updateDiagram.mutate({
+        id: editingDiagram.id,
+        ...data,
+      });
+    }
+  };
+
+  // Handle node position changes
+  const onNodeDragStop = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      updateDiagram.mutate({
+        id: node.id,
+        positionX: node.position.x,
+        positionY: node.position.y,
+      });
+    },
+    [updateDiagram]
+  );
+
+  const handleSaveCollectionInfo = (data: {
+    name: string;
+    description: string;
+  }) => {
+    if (collection) {
+      updateCollection.mutate({
+        collectionId: collection.id,
+        name: data.name,
+        description: data.description,
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -52,48 +225,59 @@ export default function CollectionPage() {
   }
 
   return (
-    <div className="space-y-[var(--spacing-xl)]">
-      {/* Collection Overview */}
-      <Card>
+    <div className="space-y-[var(--spacing-xl)] h-full">
+      {/* Collection Info */}
+      <CollectionInfoCard
+        initialName={collection.name || ""}
+        initialDescription={collection.description || ""}
+        onSave={handleSaveCollectionInfo}
+      />
+
+      {/* React Flow Canvas */}
+      <Card className="flex-1 min-h-96">
         <CardHeader>
-          <CardTitle className="prism-text-l-semibold">
-            Collection Situation
-          </CardTitle>
-          <CardDescription>
-            General information about this collection
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-l">
-            <div>
-              <dt className="prism-text-s text-muted-foreground mb-[var(--spacing-xs)]">
-                Collection ID
-              </dt>
-              <dd className="font-mono text-sm">{collection.id}</dd>
-            </div>
-            <div>
-              <dt className="prism-text-s text-muted-foreground mb-[var(--spacing-xs)]">
-                Collection Name
-              </dt>
-              <dd className="font-medium">{collection.name}</dd>
-            </div>
-            <div>
-              <dt className="prism-text-s text-muted-foreground mb-[var(--spacing-xs)]">
-                Created
-              </dt>
-              <dd className="text-sm">
-                {new Date(collection.createdAt).toLocaleDateString()}
-              </dd>
-            </div>
-            <div>
-              <dt className="prism-text-s text-muted-foreground mb-[var(--spacing-xs)]">
-                Total Documents
-              </dt>
-              <dd className="text-sm">{documents?.length ?? 0}</dd>
-            </div>
+          <div className="flex items-center justify-between">
+            <CardTitle>Situation Diagrams</CardTitle>
+            <Button onClick={handleCreateDiagram}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Person
+            </Button>
           </div>
+        </CardHeader>
+        <CardContent className="p-0 h-96 relative">
+          <div className="absolute inset-0">
+            <Squares
+              direction="right"
+              speed={0.5}
+              squareSize={40}
+              className="opacity-30"
+            />
+          </div>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onNodeDragStop={onNodeDragStop}
+            nodeTypes={nodeTypes}
+            fitView
+            className="relative z-10 bg-transparent"
+          >
+            <Controls />
+            <MiniMap />
+          </ReactFlow>
         </CardContent>
       </Card>
+
+      {/* Dialog */}
+      <SituationDiagramDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onSave={handleSaveDiagram}
+        initialData={editingDiagram || undefined}
+        mode={dialogMode}
+      />
     </div>
   );
 }
