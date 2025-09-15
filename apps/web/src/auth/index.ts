@@ -86,7 +86,7 @@ export const auth = betterAuth({
             ? `http://localhost:3000/accept-invitation/${data.id}`
             : `https://deliberate-innovation-web.vercel.app/accept-invitation/${data.id}`;
         await resend.emails.send({
-          from: "Deliberate Innovation <alex@prismai.sh>",
+          from: "Deliberate Innovation <alex@mail.prismai.sh>",
           to: data.email,
           subject: `You've been invited to join ${data.organization.name} on Deliberate Innovation`,
           react: InviteEmail({
@@ -108,7 +108,7 @@ export const auth = betterAuth({
     sendOnSignUp: true,
     sendVerificationEmail: async ({ user, url }) => {
       await resend.emails.send({
-        from: "Deliberate Innovation <alex@prismai.sh>",
+        from: "Deliberate Innovation <alex@mail.prismai.sh>",
         to: user.email,
         subject: "Verify your email address",
         text: `Click the link to verify your email: ${url}`,

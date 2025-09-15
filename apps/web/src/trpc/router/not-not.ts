@@ -96,16 +96,11 @@ export const notNotRouter = createTRPCRouter({
         throw new Error("Need at least 5 documents with valid embeddings");
       }
 
-      console.log(
-        `Generating not-nots for collection ${input.collectionId} with ${processedDocuments.length} documents`
-      );
-
       // Generate not-nots using the clustering service
       const notNotCandidates =
         await generateNotNotsFromDocuments(processedDocuments);
 
       if (notNotCandidates.length === 0) {
-        console.log("No valid not-nots generated from document clustering");
         return { generated: 0, notNots: [] };
       }
 
@@ -139,10 +134,6 @@ export const notNotRouter = createTRPCRouter({
 
         return results;
       });
-
-      console.log(
-        `Successfully saved ${savedNotNots.length} not-nots to database`
-      );
 
       return {
         generated: savedNotNots.length,

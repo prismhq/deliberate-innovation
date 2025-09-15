@@ -113,6 +113,10 @@ export function clusterDocuments(
   // Dynamic K selection: aim for 3-5 clusters
   const k = Math.min(Math.max(Math.floor(documents.length / 3), 2), 5);
 
+  console.log(
+    `🔍 Starting clustering with ${documents.length} documents, targeting ${k} clusters`
+  );
+
   // Initialize centroids randomly by selecting k documents
   const initialCentroidIndices = new Set<number>();
   while (initialCentroidIndices.size < k) {
@@ -127,18 +131,34 @@ export function clusterDocuments(
   let iterations = 0;
   const maxIterations = 20;
 
+  console.log(
+    `🎯 Initial centroids selected from documents: ${Array.from(
+      initialCentroidIndices
+    )
+      .map((i) => `"${documents[i]!.title}"`)
+      .join(", ")}`
+  );
+
   // K-means iterations
   while (changed && iterations < maxIterations) {
     changed = false;
     iterations++;
+    console.log(`📊 K-means iteration ${iterations}/${maxIterations}`);
 
     // Assign each document to nearest centroid
+    let assignmentChanges = 0;
     for (let i = 0; i < documents.length; i++) {
       let bestCluster = 0;
       let bestSimilarity = cosineSimilarity(
         documents[i]!.embedding,
         centroids[0]!
       );
+
+      // Calculate similarities to all centroids for detailed logging
+      const similarities = centroids.map((centroid, j) => ({
+        cluster: j,
+        similarity: cosineSimilarity(documents[i]!.embedding, centroid),
+      }));
 
       for (let j = 1; j < k; j++) {
         const similarity = cosineSimilarity(
@@ -151,10 +171,28 @@ export function clusterDocuments(
         }
       }
 
+      const oldAssignment = assignments[i];
       if (assignments[i] !== bestCluster) {
         assignments[i] = bestCluster;
         changed = true;
+        assignmentChanges++;
+
+        // Log assignment change with reasoning
+        console.log(
+          `   📝 "${documents[i]!.title}" moved: Cluster ${oldAssignment} → Cluster ${bestCluster}`
+        );
+        console.log(
+          `      🎯 Similarities: ${similarities.map((s) => `C${s.cluster}:${(s.similarity * 100).toFixed(1)}%`).join(", ")}`
+        );
       }
+    }
+
+    if (assignmentChanges > 0) {
+      console.log(
+        `   🔄 ${assignmentChanges} documents reassigned in iteration ${iterations}`
+      );
+    } else {
+      console.log(`   ✅ No changes in iteration ${iterations} - converged!`);
     }
 
     // Update centroids
@@ -194,24 +232,108 @@ export function clusterDocuments(
       const averageSimilarity =
         pairCount > 0 ? clusterSimilaritySum / pairCount : 1.0;
 
-      clusters.push({
+      const cluster = {
         centroid: centroids[j] ?? [],
         documents: clusterDocs,
         averageSimilarity,
         clusterIndex: j,
+      };
+
+      clusters.push(cluster);
+
+      // Log detailed cluster information
+      console.log(`\n🎯 Cluster ${j}:`);
+      console.log(`   📄 Documents: ${clusterDocs.length}`);
+      console.log(
+        `   🎪 Average Similarity: ${(averageSimilarity * 100).toFixed(1)}%`
+      );
+
+      // Show document titles with assignment reasoning
+      console.log(`   📝 Document assignments:`);
+      clusterDocs.forEach((doc, idx) => {
+        // Calculate this document's similarity to all centroids for assignment reasoning
+        const docSimilarities = centroids
+          .map((centroid, cIdx) => ({
+            cluster: cIdx,
+            similarity: cosineSimilarity(doc.embedding, centroid),
+          }))
+          .sort((a, b) => b.similarity - a.similarity);
+
+        console.log(`      ${idx + 1}. "${doc.title}"`);
+        console.log(
+          `         🎯 Centroid similarities: ${docSimilarities.map((s) => `C${s.cluster}:${(s.similarity * 100).toFixed(1)}%`).join(", ")}`
+        );
       });
+
+      // Show pairwise similarities within cluster
+      if (clusterDocs.length > 1) {
+        console.log(`   🔗 Pairwise similarities within cluster:`);
+        for (let x = 0; x < clusterDocs.length; x++) {
+          for (let y = x + 1; y < clusterDocs.length; y++) {
+            const pairSimilarity = cosineSimilarity(
+              clusterDocs[x]!.embedding,
+              clusterDocs[y]!.embedding
+            );
+            console.log(
+              `      "${clusterDocs[x]!.title}" ↔ "${clusterDocs[y]!.title}": ${(pairSimilarity * 100).toFixed(1)}%`
+            );
+          }
+        }
+      }
 
       totalSimilarity += averageSimilarity;
       validClusters++;
     }
   }
 
-  return {
+  const result = {
     clusters,
     totalDocuments: documents.length,
     averageClusterSimilarity:
       validClusters > 0 ? totalSimilarity / validClusters : 0,
   };
+
+  // Show cross-cluster boundary analysis
+  if (clusters.length > 1) {
+    console.log(`\n🌉 Cross-cluster boundary analysis:`);
+    for (let i = 0; i < clusters.length; i++) {
+      for (let j = i + 1; j < clusters.length; j++) {
+        const cluster1 = clusters[i]!;
+        const cluster2 = clusters[j]!;
+
+        // Find the most similar pair across clusters
+        let maxCrossSimilarity = -1;
+        let mostSimilarPair = { doc1: "", doc2: "" };
+
+        for (const doc1 of cluster1.documents) {
+          for (const doc2 of cluster2.documents) {
+            const similarity = cosineSimilarity(doc1.embedding, doc2.embedding);
+            if (similarity > maxCrossSimilarity) {
+              maxCrossSimilarity = similarity;
+              mostSimilarPair = { doc1: doc1.title, doc2: doc2.title };
+            }
+          }
+        }
+
+        console.log(
+          `   Cluster ${i} ↔ Cluster ${j}: Max cross-similarity ${(maxCrossSimilarity * 100).toFixed(1)}%`
+        );
+        console.log(
+          `      Most similar pair: "${mostSimilarPair.doc1}" ↔ "${mostSimilarPair.doc2}"`
+        );
+      }
+    }
+  }
+
+  console.log(`\n✅ Clustering complete:`);
+  console.log(`   📊 Total clusters: ${clusters.length}`);
+  console.log(`   📄 Total documents: ${documents.length}`);
+  console.log(
+    `   🎪 Average similarity: ${(result.averageClusterSimilarity * 100).toFixed(1)}%`
+  );
+  console.log(`   🔄 Iterations: ${iterations}`);
+
+  return result;
 }
 
 /**
@@ -381,21 +503,30 @@ export async function generateNotNotsFromDocuments(
     minClusterSize: 2,
   });
 
-  console.log(`Generated ${clusteringResult.clusters.length} clusters`);
+  console.log(
+    `\n🤖 Starting OpenAI analysis of ${clusteringResult.clusters.length} clusters`
+  );
 
   // Analyze each cluster for not-nots
   const notNotCandidates: NotNotCandidate[] = [];
 
   for (const cluster of clusteringResult.clusters) {
     console.log(
-      `Analyzing cluster ${cluster.clusterIndex} with ${cluster.documents.length} documents`
+      `\n🧠 Analyzing cluster ${cluster.clusterIndex} with ${cluster.documents.length} documents for not-not patterns...`
     );
 
     try {
       const notNot = await analyzeClusterForNotNot(cluster);
       if (notNot) {
         notNotCandidates.push(notNot);
-        console.log(`Generated not-not: "${notNot.title}"`);
+        console.log(`✨ Generated not-not: "${notNot.title}"`);
+        console.log(
+          `   💡 Description: ${notNot.description.substring(0, 100)}${notNot.description.length > 100 ? "..." : ""}`
+        );
+      } else {
+        console.log(
+          `❌ No valid not-not found for cluster ${cluster.clusterIndex}`
+        );
       }
     } catch (error) {
       console.error(

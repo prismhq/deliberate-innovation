@@ -72,8 +72,9 @@ export const createCallerFactory = t.createCallerFactory;
  */
 export const createTRPCRouter = t.router;
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const timingMiddleware = t.middleware(async ({ next, path }) => {
-  const start = Date.now();
+  // const start = Date.now();
 
   // if (t._config.isDev) {
   //   // artificial delay in dev
@@ -83,8 +84,8 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
 
   const result = await next();
 
-  const end = Date.now();
-  console.log(`[TRPC] ${path} took ${end - start}ms to execute`);
+  // const end = Date.now();
+  // console.log(`[TRPC] ${path} took ${end - start}ms to execute`);
 
   return result;
 });

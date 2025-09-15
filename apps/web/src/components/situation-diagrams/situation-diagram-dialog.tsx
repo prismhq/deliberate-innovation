@@ -94,7 +94,9 @@ export function SituationDiagramDialog({
       // Find relationship connections from relations array that match existing people
       const relationshipConnections = (initialData?.relations || [])
         .map((relationTitle) => {
-          const matchingPerson = existingPeople.find(p => p.title === relationTitle);
+          const matchingPerson = existingPeople.find(
+            (p) => p.title === relationTitle
+          );
           return matchingPerson?.id;
         })
         .filter(Boolean) as string[];
@@ -114,7 +116,7 @@ export function SituationDiagramDialog({
     // Get titles of connected people to filter out from relations array
     const connectedTitles = data.relationshipConnections
       .map((personId) => {
-        const person = existingPeople.find(p => p.id === personId);
+        const person = existingPeople.find((p) => p.id === personId);
         return person?.title;
       })
       .filter(Boolean) as string[];
