@@ -153,6 +153,39 @@ export default function CollectionPage() {
         },
       }));
 
+      // Helper function to calculate the best handle based on relative positions
+      const getBestHandles = (sourceNode: SituationDiagramRecord, targetNode: SituationDiagramRecord) => {
+        const dx = targetNode.positionX - sourceNode.positionX;
+        const dy = targetNode.positionY - sourceNode.positionY;
+
+        // Calculate the angle between nodes
+        const angle = Math.atan2(dy, dx);
+        const degrees = (angle * 180) / Math.PI;
+
+        // Determine best source and target handles based on angle
+        let sourceHandle, targetHandle;
+
+        if (degrees >= -45 && degrees < 45) {
+          // Target is to the right
+          sourceHandle = "right-source";
+          targetHandle = "left";
+        } else if (degrees >= 45 && degrees < 135) {
+          // Target is below
+          sourceHandle = "bottom-source";
+          targetHandle = "top";
+        } else if (degrees >= 135 || degrees < -135) {
+          // Target is to the left
+          sourceHandle = "left-source";
+          targetHandle = "right";
+        } else {
+          // Target is above
+          sourceHandle = "top-source";
+          targetHandle = "bottom";
+        }
+
+        return { sourceHandle, targetHandle };
+      };
+
       // Create edges based on relations array
       const newEdges: Edge[] = [];
 
@@ -166,10 +199,14 @@ export default function CollectionPage() {
             const edgeId = `${sourceDiagram.id}-${targetDiagram.id}`;
             // Avoid duplicate edges
             if (!newEdges.some((edge) => edge.id === edgeId)) {
+              const { sourceHandle, targetHandle } = getBestHandles(sourceDiagram, targetDiagram);
+
               newEdges.push({
                 id: edgeId,
                 source: sourceDiagram.id,
                 target: targetDiagram.id,
+                sourceHandle,
+                targetHandle,
                 type: "default",
               });
             }

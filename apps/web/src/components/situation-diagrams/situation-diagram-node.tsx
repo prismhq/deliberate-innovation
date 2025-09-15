@@ -45,15 +45,53 @@ export const SituationDiagramNode = memo(
       <div
         className={`min-w-80 rounded-lg ${selected ? "ring-2 ring-primary" : ""}`}
       >
-        {/* Connection Handles */}
+        {/* Connection Handles - Multiple directions for smart routing */}
+        <Handle
+          type="target"
+          position={Position.Top}
+          id="top"
+          style={{ background: '#555' }}
+        />
         <Handle
           type="target"
           position={Position.Left}
+          id="left"
+          style={{ background: '#555' }}
+        />
+        <Handle
+          type="target"
+          position={Position.Right}
+          id="right"
+          style={{ background: '#555' }}
+        />
+        <Handle
+          type="target"
+          position={Position.Bottom}
+          id="bottom"
+          style={{ background: '#555' }}
+        />
+        <Handle
+          type="source"
+          position={Position.Top}
+          id="top-source"
+          style={{ background: '#555' }}
+        />
+        <Handle
+          type="source"
+          position={Position.Left}
+          id="left-source"
           style={{ background: '#555' }}
         />
         <Handle
           type="source"
           position={Position.Right}
+          id="right-source"
+          style={{ background: '#555' }}
+        />
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          id="bottom-source"
           style={{ background: '#555' }}
         />
 
