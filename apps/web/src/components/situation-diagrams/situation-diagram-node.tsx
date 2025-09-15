@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { Handle, Position, type NodeProps } from "@reactflow/core";
+import { type NodeProps } from "@reactflow/core";
 import {
   Card,
   CardContent,
@@ -42,10 +42,12 @@ export const SituationDiagramNode = memo(
     } = data;
 
     return (
-      <div className={`min-w-80 ${selected ? "ring-2 ring-primary" : ""}`}>
+      <div
+        className={`min-w-80 rounded-lg ${selected ? "ring-2 ring-primary" : ""}`}
+      >
         <Card className="bg-background/95 backdrop-blur-sm shadow-lg border-2">
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <CardTitle className="prism-text-m-semibold">{title}</CardTitle>
               <div className="flex items-center gap-1">
                 <Button
@@ -179,28 +181,6 @@ export const SituationDiagramNode = memo(
               )}
           </CardContent>
         </Card>
-
-        {/* React Flow Handles */}
-        <Handle
-          type="target"
-          position={Position.Top}
-          className="w-3 h-3 !bg-primary border-2 border-background"
-        />
-        <Handle
-          type="source"
-          position={Position.Bottom}
-          className="w-3 h-3 !bg-primary border-2 border-background"
-        />
-        <Handle
-          type="target"
-          position={Position.Left}
-          className="w-3 h-3 !bg-primary border-2 border-background"
-        />
-        <Handle
-          type="source"
-          position={Position.Right}
-          className="w-3 h-3 !bg-primary border-2 border-background"
-        />
       </div>
     );
   }

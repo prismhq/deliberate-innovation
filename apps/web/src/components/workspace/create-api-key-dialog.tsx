@@ -100,7 +100,7 @@ export function CreateApiKeyDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="max-w-5xl">
         <DialogHeader>
           <DialogTitle>
             {createdApiKey ? "API Key Created" : "Create API Key"}

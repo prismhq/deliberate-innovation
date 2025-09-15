@@ -202,7 +202,7 @@ export function CreateDocumentDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-w-5xl">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Edit Document" : "Create Document"}

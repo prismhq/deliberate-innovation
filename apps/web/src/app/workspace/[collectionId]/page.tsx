@@ -12,16 +12,12 @@ import {
   CardTitle,
 } from "@prism/ui/components/card";
 import { Button } from "@prism/ui/components/button";
-import { Plus } from "lucide-react";
 import { api } from "~/trpc/react";
 import {
   ReactFlow,
   useNodesState,
   useEdgesState,
-  addEdge,
   Panel,
-  type Connection,
-  type Edge,
   type Node,
 } from "@reactflow/core";
 import { Controls } from "@reactflow/controls";
@@ -90,38 +86,70 @@ export default function CollectionPage() {
     },
   });
 
-  // Convert database diagrams to React Flow nodes
-  const convertToNodes = useCallback((diagrams: typeof situationDiagrams) => {
-    if (!diagrams) return [];
+  // Stabilize mutation functions across renders to avoid effect churn
+  const deleteDiagramMutateRef = React.useRef(deleteDiagram.mutate);
+  React.useEffect(() => {
+    deleteDiagramMutateRef.current = deleteDiagram.mutate;
+  }, [deleteDiagram.mutate]);
 
-    return diagrams.map((diagram: any) => ({
-      id: diagram.id,
-      type: "situationDiagram",
-      position: { x: diagram.positionX, y: diagram.positionY },
-      data: {
-        id: diagram.id,
-        title: diagram.title,
-        actions: diagram.actions,
-        relations: diagram.relations,
-        resources: diagram.resources,
-        channels: diagram.channels,
-        onEdit: handleEditDiagram,
-        onDelete: handleDeleteDiagram,
-      },
-    }));
-  }, []);
+  const updateDiagramMutateRef = React.useRef(updateDiagram.mutate);
+  React.useEffect(() => {
+    updateDiagramMutateRef.current = updateDiagram.mutate;
+  }, [updateDiagram.mutate]);
+
+  type SituationDiagramRecord = {
+    id: string;
+    title: string;
+    actions: string[];
+    relations: string[];
+    resources: string[];
+    channels: string[];
+    positionX: number;
+    positionY: number;
+  };
+
+  // Note: delete is handled inline in node data to avoid stale closures
 
   // Update nodes when data changes
   React.useEffect(() => {
     if (situationDiagrams) {
-      setNodes(convertToNodes(situationDiagrams));
+      const newNodes = (situationDiagrams as SituationDiagramRecord[]).map(
+        (diagram) => ({
+          id: diagram.id,
+          type: "situationDiagram",
+          position: { x: diagram.positionX, y: diagram.positionY },
+          data: {
+            id: diagram.id,
+            title: diagram.title,
+            actions: diagram.actions,
+            relations: diagram.relations,
+            resources: diagram.resources,
+            channels: diagram.channels,
+            onEdit: (id: string) => {
+              const diagram = (
+                situationDiagrams as SituationDiagramRecord[] | undefined
+              )?.find((d) => d.id === id);
+              if (diagram) {
+                setEditingDiagram(diagram);
+                setDialogMode("edit");
+                setDialogOpen(true);
+              }
+            },
+            onDelete: (id: string) => {
+              if (
+                confirm(
+                  "Are you sure you want to delete this situation diagram?"
+                )
+              ) {
+                deleteDiagramMutateRef.current({ id });
+              }
+            },
+          },
+        })
+      );
+      setNodes(newNodes);
     }
-  }, [situationDiagrams, convertToNodes, setNodes]);
-
-  const onConnect = useCallback(
-    (params: Edge | Connection) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
-  );
+  }, [situationDiagrams, setNodes]);
 
   const handleCreateDiagram = () => {
     setEditingDiagram(null);
@@ -129,35 +157,33 @@ export default function CollectionPage() {
     setDialogOpen(true);
   };
 
-  const handleEditDiagram = useCallback(
-    (id: string) => {
-      const diagram = situationDiagrams?.find((d: any) => d.id === id);
-      if (diagram) {
-        setEditingDiagram(diagram);
-        setDialogMode("edit");
-        setDialogOpen(true);
-      }
-    },
-    [situationDiagrams]
-  );
-
-  const handleDeleteDiagram = useCallback(
-    (id: string) => {
-      if (confirm("Are you sure you want to delete this situation diagram?")) {
-        deleteDiagram.mutate({ id });
-      }
-    },
-    [deleteDiagram]
-  );
-
-  const handleSaveDiagram = (data: Omit<SituationDiagramData, "id">) => {
+  const handleSaveDiagram = (
+    data: Omit<SituationDiagramData, "id">,
+    relationshipConnections?: string[]
+  ) => {
     if (dialogMode === "create") {
-      createDiagram.mutate({
-        ...data,
-        collectionId,
-        positionX: nextPositionRef.current.x,
-        positionY: nextPositionRef.current.y,
-      });
+      createDiagram.mutate(
+        {
+          ...data,
+          collectionId,
+          positionX: nextPositionRef.current.x,
+          positionY: nextPositionRef.current.y,
+        },
+        {
+          onSuccess: (newDiagram) => {
+            // Create edges for relationship connections
+            if (relationshipConnections && relationshipConnections.length > 0) {
+              const newEdges = relationshipConnections.map((targetId) => ({
+                id: `${newDiagram.id}-${targetId}`,
+                source: newDiagram.id,
+                target: targetId,
+                type: "default",
+              }));
+              setEdges((prevEdges) => [...prevEdges, ...newEdges]);
+            }
+          },
+        }
+      );
       // Update next position
       nextPositionRef.current = {
         x: nextPositionRef.current.x + 50,
@@ -172,16 +198,13 @@ export default function CollectionPage() {
   };
 
   // Handle node position changes
-  const onNodeDragStop = useCallback(
-    (_event: React.MouseEvent, node: Node) => {
-      updateDiagram.mutate({
-        id: node.id,
-        positionX: node.position.x,
-        positionY: node.position.y,
-      });
-    },
-    [updateDiagram]
-  );
+  const onNodeDragStop = useCallback((_event: React.MouseEvent, node: Node) => {
+    updateDiagramMutateRef.current({
+      id: node.id,
+      positionX: node.position.x,
+      positionY: node.position.y,
+    });
+  }, []);
 
   const handleSaveCollectionInfo = (data: {
     name: string;
@@ -196,10 +219,22 @@ export default function CollectionPage() {
     }
   };
 
+  const existingPeople =
+    situationDiagrams
+      ?.filter((d) => d.id !== editingDiagram?.id)
+      .map((d) => ({ id: d.id, title: d.title })) || [];
+
+  // Memoized options must be defined before any early returns to satisfy Hooks rules
+  const fitViewOptions = React.useMemo(
+    () => ({ padding: 0.2, minZoom: 0.3, maxZoom: 1.5 }),
+    []
+  );
+  const proOptions = React.useMemo(() => ({ hideAttribution: true }), []);
+
   if (isLoading) {
     return (
-      <div className="prism-loading-state">
-        <div className="prism-loading-text">Loading collection...</div>
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
   }
@@ -232,13 +267,14 @@ export default function CollectionPage() {
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
           onNodeDragStop={onNodeDragStop}
           nodeTypes={nodeTypes}
           fitView
-          proOptions={{ hideAttribution: true }}
-          className="relative z-10 bg-transparent h-full w-full"
-          style={{ width: "100%", height: "100%" }}
+          fitViewOptions={fitViewOptions}
+          proOptions={proOptions}
+          elementsSelectable={true}
+          nodesConnectable={false}
+          connectOnClick={false}
         >
           <Panel position="top-center">
             <CollectionInfoCard
@@ -260,6 +296,7 @@ export default function CollectionPage() {
         onSave={handleSaveDiagram}
         initialData={editingDiagram || undefined}
         mode={dialogMode}
+        existingPeople={existingPeople}
       />
     </div>
   );
