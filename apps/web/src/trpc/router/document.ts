@@ -60,68 +60,6 @@ export const documentRouter = createTRPCRouter({
         }
       }
 
-      // Check if collection now has enough documents for not-not generation
-      // Run this asynchronously to not block document creation
-      setTimeout(async () => {
-        try {
-          // Get document count for this collection with embeddings using raw SQL
-          const documentCountResult = await ctx.db.$queryRaw<
-            Array<{ count: bigint }>
-          >`
-            SELECT COUNT(*) as count
-            FROM "Document"
-            WHERE "collection_id" = ${input.collectionId}
-            AND embedding IS NOT NULL
-          `;
-
-          const documentCount = Number(documentCountResult[0]?.count ?? 0);
-
-          // If we have exactly 5 documents (just reached threshold) or multiples of 5,
-          // trigger not-not generation
-          if (documentCount >= 5 && documentCount % 5 === 0) {
-            console.log(
-              `Collection ${input.collectionId} has ${documentCount} documents, triggering not-not generation`
-            );
-
-            // Check if we need generation using our status endpoint
-            const { createCaller } = await import("~/trpc/router/index");
-            const caller = createCaller({
-              db: ctx.db,
-              session: ctx.session,
-              headers: new Headers(),
-            });
-
-            const status = await caller.notNot.getGenerationStatus({
-              collectionId: input.collectionId,
-            });
-
-            if (status.generationNeeded) {
-              console.log(
-                `Starting not-not generation for collection ${input.collectionId}`
-              );
-
-              await caller.notNot.generateForCollection({
-                collectionId: input.collectionId,
-              });
-
-              console.log(
-                `Completed not-not generation for collection ${input.collectionId}`
-              );
-            } else {
-              console.log(
-                `No new not-not generation needed for collection ${input.collectionId}`
-              );
-            }
-          }
-        } catch (error) {
-          console.error(
-            `Failed to trigger not-not generation for collection ${input.collectionId}:`,
-            error
-          );
-          // Don't throw - this is background processing and shouldn't fail document creation
-        }
-      }, 100); // Small delay to ensure document is fully committed
-
       return document;
     }),
 
