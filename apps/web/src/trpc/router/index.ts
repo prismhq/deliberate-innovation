@@ -2,6 +2,7 @@ import { organizationRouter } from "./organization";
 import { collectionsRouter } from "./collection";
 import { documentRouter } from "./document";
 import { situationDiagramsRouter } from "./situationDiagrams";
+import { notNotRouter } from "./not-not";
 import { createCallerFactory, createTRPCRouter } from "~/trpc";
 
 /**
@@ -14,6 +15,7 @@ export const appRouter = createTRPCRouter({
   collections: collectionsRouter,
   document: documentRouter,
   situationDiagrams: situationDiagramsRouter,
+  notNot: notNotRouter,
 });
 
 // export type definition of API
