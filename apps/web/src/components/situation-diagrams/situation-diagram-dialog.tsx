@@ -91,23 +91,44 @@ export function SituationDiagramDialog({
   // Reset form when dialog opens/closes or initialData changes
   useEffect(() => {
     if (open) {
+      // Find relationship connections from relations array that match existing people
+      const relationshipConnections = (initialData?.relations || [])
+        .map((relationTitle) => {
+          const matchingPerson = existingPeople.find(p => p.title === relationTitle);
+          return matchingPerson?.id;
+        })
+        .filter(Boolean) as string[];
+
       form.reset({
         title: initialData?.title || "",
         actions: initialData?.actions || [],
         relations: initialData?.relations || [],
-        relationshipConnections: [],
+        relationshipConnections,
         resources: initialData?.resources || [],
         channels: initialData?.channels || [],
       });
     }
-  }, [open, initialData, form]);
+  }, [open, initialData, form, existingPeople]);
 
   const handleSubmit = (data: FormData) => {
+    // Get titles of connected people to filter out from relations array
+    const connectedTitles = data.relationshipConnections
+      .map((personId) => {
+        const person = existingPeople.find(p => p.id === personId);
+        return person?.title;
+      })
+      .filter(Boolean) as string[];
+
+    // Filter out connected titles from relations array to avoid duplication
+    const filteredRelations = (data.relations || [])
+      .filter(Boolean)
+      .filter((relation) => !connectedTitles.includes(relation));
+
     onSave(
       {
         title: data.title,
         actions: (data.actions || []).filter(Boolean),
-        relations: (data.relations || []).filter(Boolean),
+        relations: filteredRelations,
         resources: (data.resources || []).filter(Boolean),
         channels: (data.channels || []).filter(Boolean),
       },

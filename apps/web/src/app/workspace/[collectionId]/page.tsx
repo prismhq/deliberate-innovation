@@ -19,9 +19,16 @@ import {
   useEdgesState,
   Panel,
   type Node,
+  type Edge,
 } from "@reactflow/core";
 import { Controls } from "@reactflow/controls";
 import { MiniMap } from "@reactflow/minimap";
+import {
+  StraightEdge,
+  StepEdge,
+  SmoothStepEdge,
+  BezierEdge,
+} from "@reactflow/core";
 import "@reactflow/core/dist/style.css";
 import { CollectionInfoCard } from "~/components/workspace/collection-info-card";
 import {
@@ -110,46 +117,69 @@ export default function CollectionPage() {
 
   // Note: delete is handled inline in node data to avoid stale closures
 
-  // Update nodes when data changes
+  // Update nodes and edges when data changes
   React.useEffect(() => {
     if (situationDiagrams) {
-      const newNodes = (situationDiagrams as SituationDiagramRecord[]).map(
-        (diagram) => ({
+      const diagrams = situationDiagrams as SituationDiagramRecord[];
+
+      const newNodes = diagrams.map((diagram) => ({
+        id: diagram.id,
+        type: "situationDiagram",
+        position: { x: diagram.positionX, y: diagram.positionY },
+        data: {
           id: diagram.id,
-          type: "situationDiagram",
-          position: { x: diagram.positionX, y: diagram.positionY },
-          data: {
-            id: diagram.id,
-            title: diagram.title,
-            actions: diagram.actions,
-            relations: diagram.relations,
-            resources: diagram.resources,
-            channels: diagram.channels,
-            onEdit: (id: string) => {
-              const diagram = (
-                situationDiagrams as SituationDiagramRecord[] | undefined
-              )?.find((d) => d.id === id);
-              if (diagram) {
-                setEditingDiagram(diagram);
-                setDialogMode("edit");
-                setDialogOpen(true);
-              }
-            },
-            onDelete: (id: string) => {
-              if (
-                confirm(
-                  "Are you sure you want to delete this situation diagram?"
-                )
-              ) {
-                deleteDiagramMutateRef.current({ id });
-              }
-            },
+          title: diagram.title,
+          actions: diagram.actions,
+          relations: diagram.relations,
+          resources: diagram.resources,
+          channels: diagram.channels,
+          onEdit: (id: string) => {
+            const diagram = (
+              situationDiagrams as SituationDiagramRecord[] | undefined
+            )?.find((d) => d.id === id);
+            if (diagram) {
+              setEditingDiagram(diagram);
+              setDialogMode("edit");
+              setDialogOpen(true);
+            }
           },
-        })
-      );
+          onDelete: (id: string) => {
+            if (
+              confirm("Are you sure you want to delete this situation diagram?")
+            ) {
+              deleteDiagramMutateRef.current({ id });
+            }
+          },
+        },
+      }));
+
+      // Create edges based on relations array
+      const newEdges: Edge[] = [];
+
+      diagrams.forEach((sourceDiagram) => {
+        sourceDiagram.relations.forEach((relationTitle) => {
+          const targetDiagram = diagrams.find(
+            (d) => d.title === relationTitle && d.id !== sourceDiagram.id
+          );
+
+          if (targetDiagram) {
+            const edgeId = `${sourceDiagram.id}-${targetDiagram.id}`;
+            // Avoid duplicate edges
+            if (!newEdges.some((edge) => edge.id === edgeId)) {
+              newEdges.push({
+                id: edgeId,
+                source: sourceDiagram.id,
+                target: targetDiagram.id,
+                type: "default",
+              });
+            }
+          }
+        });
+      });
       setNodes(newNodes);
+      setEdges(newEdges);
     }
-  }, [situationDiagrams, setNodes]);
+  }, [situationDiagrams, setNodes, setEdges]);
 
   const handleCreateDiagram = () => {
     setEditingDiagram(null);
@@ -161,29 +191,38 @@ export default function CollectionPage() {
     data: Omit<SituationDiagramData, "id">,
     relationshipConnections?: string[]
   ) => {
-    if (dialogMode === "create") {
-      createDiagram.mutate(
-        {
-          ...data,
-          collectionId,
-          positionX: nextPositionRef.current.x,
-          positionY: nextPositionRef.current.y,
-        },
-        {
-          onSuccess: (newDiagram) => {
-            // Create edges for relationship connections
-            if (relationshipConnections && relationshipConnections.length > 0) {
-              const newEdges = relationshipConnections.map((targetId) => ({
-                id: `${newDiagram.id}-${targetId}`,
-                source: newDiagram.id,
-                target: targetId,
-                type: "default",
-              }));
-              setEdges((prevEdges) => [...prevEdges, ...newEdges]);
-            }
-          },
+    // Add connected node titles to relations array
+    let updatedRelations = [...(data.relations || [])];
+    if (relationshipConnections && relationshipConnections.length > 0) {
+      const connectedTitles = relationshipConnections
+        .map((targetId) => {
+          const targetDiagram = (
+            situationDiagrams as SituationDiagramRecord[]
+          )?.find((d) => d.id === targetId);
+          return targetDiagram?.title;
+        })
+        .filter(Boolean) as string[];
+
+      // Add connected titles to relations array, avoiding duplicates
+      connectedTitles.forEach((title) => {
+        if (!updatedRelations.includes(title)) {
+          updatedRelations.push(title);
         }
-      );
+      });
+    }
+
+    const finalData = {
+      ...data,
+      relations: updatedRelations,
+    };
+
+    if (dialogMode === "create") {
+      createDiagram.mutate({
+        ...finalData,
+        collectionId,
+        positionX: nextPositionRef.current.x,
+        positionY: nextPositionRef.current.y,
+      });
       // Update next position
       nextPositionRef.current = {
         x: nextPositionRef.current.x + 50,
@@ -192,7 +231,7 @@ export default function CollectionPage() {
     } else if (editingDiagram) {
       updateDiagram.mutate({
         id: editingDiagram.id,
-        ...data,
+        ...finalData,
       });
     }
   };
@@ -259,9 +298,13 @@ export default function CollectionPage() {
     );
   }
 
+
   return (
     <div className="min-h-full flex flex-col">
-      <div className="relative flex-1 min-h-0 w-full h-full">
+      <div
+        className="relative flex-1 min-h-0 w-full"
+        style={{ height: "100vh" }}
+      >
         <ReactFlow
           nodes={nodes}
           edges={edges}

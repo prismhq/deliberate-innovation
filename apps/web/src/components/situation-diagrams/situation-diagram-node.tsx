@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { type NodeProps } from "@reactflow/core";
+import { type NodeProps, Handle, Position } from "@reactflow/core";
 import {
   Card,
   CardContent,
@@ -45,6 +45,18 @@ export const SituationDiagramNode = memo(
       <div
         className={`min-w-80 rounded-lg ${selected ? "ring-2 ring-primary" : ""}`}
       >
+        {/* Connection Handles */}
+        <Handle
+          type="target"
+          position={Position.Left}
+          style={{ background: '#555' }}
+        />
+        <Handle
+          type="source"
+          position={Position.Right}
+          style={{ background: '#555' }}
+        />
+
         <Card className="bg-background/95 backdrop-blur-sm shadow-lg border-2">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between gap-4">
