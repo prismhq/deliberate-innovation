@@ -90,14 +90,15 @@ model Collection {
 }
 
 model Document {
-  id           String                 @id @default(cuid())
+  id           String              @id @default(cuid())
   title        String
   text         String
-  collectionId String                 @map("collection_id")
-  createdAt    DateTime               @default(now()) @map("created_at")
-  updatedAt    DateTime               @updatedAt @map("updated_at")
+  collectionId String              @map("collection_id")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
   embedding    Unsupported("vector")?
-  collection   Collection             @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  collection   Collection          @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  notNotLinks  NotNotDocumentLink[]
 
   @@index([collectionId])
 }
@@ -117,6 +118,28 @@ model SituationDiagram {
   collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 
   @@index([collectionId])
+}
+
+model NotNot {
+  id           String              @id @default(cuid())
+  title        String
+  description  String?
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+  collectionId String              @map("collection_id")
+  documentLinks NotNotDocumentLink[]
+
+  @@index([collectionId])
+}
+
+model NotNotDocumentLink {
+  notNotId   String
+  documentId String
+
+  notNot     NotNot   @relation(fields: [notNotId], references: [id], onDelete: Cascade)
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@id([notNotId, documentId])
 }
 
 model CollectionMember {

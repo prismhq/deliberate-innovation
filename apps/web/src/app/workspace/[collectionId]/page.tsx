@@ -23,12 +23,6 @@ import {
 } from "@reactflow/core";
 import { Controls } from "@reactflow/controls";
 import { MiniMap } from "@reactflow/minimap";
-import {
-  StraightEdge,
-  StepEdge,
-  SmoothStepEdge,
-  BezierEdge,
-} from "@reactflow/core";
 import "@reactflow/core/dist/style.css";
 import { CollectionInfoCard } from "~/components/workspace/collection-info-card";
 import {
@@ -154,7 +148,10 @@ export default function CollectionPage() {
       }));
 
       // Helper function to calculate the best handle based on relative positions
-      const getBestHandles = (sourceNode: SituationDiagramRecord, targetNode: SituationDiagramRecord) => {
+      const getBestHandles = (
+        sourceNode: SituationDiagramRecord,
+        targetNode: SituationDiagramRecord
+      ) => {
         const dx = targetNode.positionX - sourceNode.positionX;
         const dy = targetNode.positionY - sourceNode.positionY;
 
@@ -199,7 +196,10 @@ export default function CollectionPage() {
             const edgeId = `${sourceDiagram.id}-${targetDiagram.id}`;
             // Avoid duplicate edges
             if (!newEdges.some((edge) => edge.id === edgeId)) {
-              const { sourceHandle, targetHandle } = getBestHandles(sourceDiagram, targetDiagram);
+              const { sourceHandle, targetHandle } = getBestHandles(
+                sourceDiagram,
+                targetDiagram
+              );
 
               newEdges.push({
                 id: edgeId,
@@ -229,7 +229,7 @@ export default function CollectionPage() {
     relationshipConnections?: string[]
   ) => {
     // Add connected node titles to relations array
-    let updatedRelations = [...(data.relations || [])];
+    const updatedRelations = [...(data.relations || [])];
     if (relationshipConnections && relationshipConnections.length > 0) {
       const connectedTitles = relationshipConnections
         .map((targetId) => {
@@ -334,7 +334,6 @@ export default function CollectionPage() {
       </div>
     );
   }
-
 
   return (
     <div className="min-h-full flex flex-col">
