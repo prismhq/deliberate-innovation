@@ -256,12 +256,6 @@ export function SituationDiagramDialog({
                 description="What are the things this person does in this situation?"
               />
 
-              <ArrayField
-                name="relations"
-                label="Relations"
-                description="Who else is involved and what do they do to support this person?"
-              />
-
               {/* Relationship Connections Field */}
               <FormField
                 control={form.control}
@@ -339,6 +333,12 @@ export function SituationDiagramDialog({
                     <FormMessage />
                   </FormItem>
                 )}
+              />
+
+              <ArrayField
+                name="relations"
+                label="Other relations"
+                description="Who else is involved and what do they do to support this person?"
               />
 
               <ArrayField
