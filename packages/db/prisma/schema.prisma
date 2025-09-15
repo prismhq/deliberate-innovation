@@ -127,6 +127,7 @@ model NotNot {
   createdAt    DateTime            @default(now()) @map("created_at")
   updatedAt    DateTime            @updatedAt @map("updated_at")
   collectionId String              @map("collection_id")
+  clusterMetadata Json?
   documentLinks NotNotDocumentLink[]
 
   @@index([collectionId])
