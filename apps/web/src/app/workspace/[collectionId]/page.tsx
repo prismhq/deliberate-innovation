@@ -19,6 +19,7 @@ import {
   useNodesState,
   useEdgesState,
   addEdge,
+  Panel,
   type Connection,
   type Edge,
   type Node,
@@ -32,7 +33,6 @@ import {
   type SituationDiagramData,
 } from "~/components/situation-diagrams/situation-diagram-node";
 import { SituationDiagramDialog } from "~/components/situation-diagrams/situation-diagram-dialog";
-import { Squares } from "~/components/landing-page/squares-background";
 
 const nodeTypes = {
   situationDiagram: SituationDiagramNode,
@@ -225,50 +225,33 @@ export default function CollectionPage() {
   }
 
   return (
-    <div className="space-y-[var(--spacing-xl)] h-full">
-      {/* Collection Info */}
-      <CollectionInfoCard
-        initialName={collection.name || ""}
-        initialDescription={collection.description || ""}
-        onSave={handleSaveCollectionInfo}
-      />
-
-      {/* React Flow Canvas */}
-      <Card className="flex-1 min-h-96">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Situation Diagrams</CardTitle>
-            <Button onClick={handleCreateDiagram}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Person
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0 h-96 relative">
-          <div className="absolute inset-0">
-            <Squares
-              direction="right"
-              speed={0.5}
-              squareSize={40}
-              className="opacity-30"
+    <div className="min-h-full flex flex-col">
+      <div className="relative flex-1 min-h-0 w-full h-full">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onNodeDragStop={onNodeDragStop}
+          nodeTypes={nodeTypes}
+          fitView
+          proOptions={{ hideAttribution: true }}
+          className="relative z-10 bg-transparent h-full w-full"
+          style={{ width: "100%", height: "100%" }}
+        >
+          <Panel position="top-center">
+            <CollectionInfoCard
+              initialName={collection.name || ""}
+              initialDescription={collection.description || ""}
+              onSave={handleSaveCollectionInfo}
+              onAddPerson={handleCreateDiagram}
             />
-          </div>
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onNodeDragStop={onNodeDragStop}
-            nodeTypes={nodeTypes}
-            fitView
-            className="relative z-10 bg-transparent"
-          >
-            <Controls />
-            <MiniMap />
-          </ReactFlow>
-        </CardContent>
-      </Card>
+          </Panel>
+          <Controls />
+          <MiniMap />
+        </ReactFlow>
+      </div>
 
       {/* Dialog */}
       <SituationDiagramDialog

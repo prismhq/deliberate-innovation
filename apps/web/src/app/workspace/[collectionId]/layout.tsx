@@ -189,7 +189,15 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
           </header>
 
           <main className="flex-1 overflow-auto">
-            <div className="mx-auto max-w-content p-xl">{children}</div>
+            <div
+              className={
+                pathname === `/workspace/${collectionId}`
+                  ? "w-full p-0 h-full flex flex-col"
+                  : "mx-auto max-w-content p-xl"
+              }
+            >
+              {children}
+            </div>
           </main>
         </div>
       </div>

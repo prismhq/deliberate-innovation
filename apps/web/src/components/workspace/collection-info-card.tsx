@@ -9,19 +9,23 @@ import {
 } from "@prism/ui/components/card";
 import { Button } from "@prism/ui/components/button";
 import { Input } from "@prism/ui/components/input";
-import { Textarea } from "@prism/ui/components/textarea";
-import { Edit, Save, X } from "lucide-react";
+import { Edit, Plus, Save, X } from "lucide-react";
+import { cn } from "~/lib/utils";
 
 interface CollectionInfoCardProps {
+  className?: string;
   initialName: string;
   initialDescription?: string;
   onSave: (data: { name: string; description: string }) => void;
+  onAddPerson: () => void;
 }
 
 export function CollectionInfoCard({
+  className,
   initialName,
   initialDescription = "",
   onSave,
+  onAddPerson,
 }: CollectionInfoCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(initialName);
@@ -57,51 +61,55 @@ export function CollectionInfoCard({
   };
 
   return (
-    <Card className="w-full">
+    <Card className={cn("w-full", className)}>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          {isEditing ? (
-            <CardTitle className="prism-text-l-semibold">
-              <Input
-                value={editingName}
-                onChange={(e) => setEditingName(e.target.value)}
-                placeholder="Enter a name for this collection"
-              />
-            </CardTitle>
-          ) : (
-            <CardTitle className="prism-text-l-semibold">
-              {name || "Untitled"}
-            </CardTitle>
-          )}
-          {!isEditing && (
-            <Button variant="outline" size="sm" onClick={handleStartEdit}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-          )}
+        <div className="flex items-center justify-between gap-10">
+          <div className="flex items-center gap-4">
+            {isEditing ? (
+              <CardTitle className="prism-text-l-semibold">
+                <Input
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  placeholder="Enter a name for this collection"
+                />
+              </CardTitle>
+            ) : (
+              <CardTitle className="prism-text-l-semibold">
+                {name || "Untitled"}
+              </CardTitle>
+            )}
+            {!isEditing ? (
+              <Button variant="ghost" size="sm" onClick={handleStartEdit}>
+                <Edit />
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={handleSave}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleCancel}>
+                  <X className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+              </div>
+            )}
+          </div>
+          <Button variant="default" size="sm" onClick={onAddPerson}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Person
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
         {isEditing ? (
           <div className="space-y-4">
             <div className="space-y-1">
-              <Textarea
+              <Input
                 value={editingDescription}
                 onChange={(e) => setEditingDescription(e.target.value)}
                 placeholder="Describe the collection context or purpose"
-                className="min-h-24 resize-none"
-                rows={4}
               />
-            </div>
-            <div className="flex items-center gap-2">
-              <Button size="sm" onClick={handleSave}>
-                <Save className="h-4 w-4 mr-2" />
-                Save
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleCancel}>
-                <X className="h-4 w-4 mr-2" />
-                Cancel
-              </Button>
             </div>
           </div>
         ) : (
