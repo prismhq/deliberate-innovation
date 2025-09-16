@@ -198,7 +198,7 @@ export default function NotNotsPage() {
                 <p>
                   {generationStatus?.eligibleForGeneration
                     ? "Click 'Generate Not-Nots' to discover authentic demand patterns in your documents."
-                    : `Add 1 or more documents with embeddings to enable not-not generation.`}
+                    : `Add 1 or more documents to enable not-not generation.`}
                 </p>
                 {generationStatus?.eligibleForGeneration && (
                   <p>

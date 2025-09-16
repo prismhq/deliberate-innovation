@@ -1,3 +1,6 @@
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
 -- CreateEnum
 CREATE TYPE "public"."Role" AS ENUM ('OWNER', 'ADMIN', 'USER', 'GUEST');
 
@@ -90,6 +93,37 @@ CREATE TABLE "public"."Document" (
     "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Document_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."SituationDiagram" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "actions" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "relations" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "resources" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "channels" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "position_x" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "position_y" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "collection_id" TEXT NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "SituationDiagram_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."NotNot" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "description" TEXT,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+    "collection_id" TEXT NOT NULL,
+    "document_id" TEXT NOT NULL,
+    "metadata" JSONB,
+
+    CONSTRAINT "NotNot_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -201,6 +235,15 @@ CREATE UNIQUE INDEX "Collection_organization_id_slug_key" ON "public"."Collectio
 CREATE INDEX "Document_collection_id_idx" ON "public"."Document"("collection_id");
 
 -- CreateIndex
+CREATE INDEX "SituationDiagram_collection_id_idx" ON "public"."SituationDiagram"("collection_id");
+
+-- CreateIndex
+CREATE INDEX "NotNot_collection_id_idx" ON "public"."NotNot"("collection_id");
+
+-- CreateIndex
+CREATE INDEX "NotNot_document_id_idx" ON "public"."NotNot"("document_id");
+
+-- CreateIndex
 CREATE INDEX "CollectionMember_user_id_idx" ON "public"."CollectionMember"("user_id");
 
 -- CreateIndex
@@ -243,6 +286,12 @@ ALTER TABLE "public"."Collection" ADD CONSTRAINT "Collection_organization_id_fke
 ALTER TABLE "public"."Document" ADD CONSTRAINT "Document_collection_id_fkey" FOREIGN KEY ("collection_id") REFERENCES "public"."Collection"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "public"."SituationDiagram" ADD CONSTRAINT "SituationDiagram_collection_id_fkey" FOREIGN KEY ("collection_id") REFERENCES "public"."Collection"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."NotNot" ADD CONSTRAINT "NotNot_document_id_fkey" FOREIGN KEY ("document_id") REFERENCES "public"."Document"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "public"."CollectionMember" ADD CONSTRAINT "CollectionMember_collection_id_fkey" FOREIGN KEY ("collection_id") REFERENCES "public"."Collection"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -259,3 +308,4 @@ ALTER TABLE "public"."Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY 
 
 -- AddForeignKey
 ALTER TABLE "public"."Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

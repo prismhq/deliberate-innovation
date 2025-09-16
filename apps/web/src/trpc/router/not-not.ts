@@ -3,7 +3,7 @@ import { createTRPCRouter, protectedProcedure } from "~/trpc";
 import {
   generateNotNotsFromDocuments,
   generateNotNotsForDocument,
-  type DocumentWithEmbedding,
+  type DocumentForNotNot,
 } from "~/lib/not-not-generator";
 
 export const notNotRouter = createTRPCRouter({
@@ -38,64 +38,15 @@ export const notNotRouter = createTRPCRouter({
         throw new Error("Need at least 1 document to generate not-nots");
       }
 
-      // Get documents with embeddings using raw SQL to handle vector type
-      const documentsWithEmbeddings = await ctx.db.$queryRaw<
-        Array<{
-          id: string;
-          title: string;
-          text: string;
-          embedding: string | null;
-          collectionId: string;
-        }>
-      >`
-        SELECT id, title, text, embedding::text as embedding, "collection_id" as "collectionId"
-        FROM "Document"
-        WHERE "collection_id" = ${input.collectionId}
-        AND embedding IS NOT NULL
-        ORDER BY "created_at" DESC
-      `;
-
-      if (documentsWithEmbeddings.length === 0) {
-        throw new Error(
-          "Need at least 1 document with embeddings to generate not-nots"
-        );
-      }
-
-      // Parse embeddings from string format
-      const processedDocuments: DocumentWithEmbedding[] =
-        documentsWithEmbeddings
-          .map((doc) => {
-            let parsedEmbedding: number[] = [];
-
-            if (doc.embedding) {
-              try {
-                // PostgreSQL vector format is typically [x,y,z] - clean and parse
-                const vectorStr = doc.embedding.replace(/[[\]]/g, "").trim();
-                parsedEmbedding = vectorStr
-                  .split(",")
-                  .map(parseFloat)
-                  .filter((n) => !isNaN(n));
-              } catch (error) {
-                console.error(
-                  `Error parsing embedding for document ${doc.id}:`,
-                  error
-                );
-              }
-            }
-
-            return {
-              id: doc.id,
-              title: doc.title,
-              text: doc.text,
-              embedding: parsedEmbedding,
-              collectionId: doc.collectionId,
-            };
-          })
-          .filter((doc) => doc.embedding.length > 0); // Only include docs with valid embeddings
-
-      if (processedDocuments.length === 0) {
-        throw new Error("Need at least 1 document with valid embeddings");
-      }
+      // Get all documents for this collection
+      const processedDocuments: DocumentForNotNot[] = collection.documents.map(
+        (doc) => ({
+          id: doc.id,
+          title: doc.title,
+          text: doc.text,
+          collectionId: doc.collectionId,
+        })
+      );
 
       // Generate not-nots using the clustering service
       const notNotCandidates =
@@ -214,57 +165,11 @@ export const notNotRouter = createTRPCRouter({
         throw new Error("Access denied");
       }
 
-      // Get document with embedding using raw SQL to handle vector type
-      const documentWithEmbedding = await ctx.db.$queryRaw<
-        Array<{
-          id: string;
-          title: string;
-          text: string;
-          embedding: string | null;
-          collectionId: string;
-        }>
-      >`
-        SELECT id, title, text, embedding::text as embedding, "collection_id" as "collectionId"
-        FROM "Document"
-        WHERE id = ${input.documentId}
-        AND embedding IS NOT NULL
-      `;
-
-      if (documentWithEmbedding.length === 0) {
-        throw new Error("Document not found or does not have embeddings");
-      }
-
-      const doc = documentWithEmbedding[0]!;
-
-      // Parse embedding from string format
-      let parsedEmbedding: number[] = [];
-      if (doc.embedding) {
-        try {
-          // PostgreSQL vector format is typically [x,y,z] - clean and parse
-          const vectorStr = doc.embedding.replace(/[[\]]/g, "").trim();
-          parsedEmbedding = vectorStr
-            .split(",")
-            .map(parseFloat)
-            .filter((n) => !isNaN(n));
-        } catch (error) {
-          console.error(
-            `Error parsing embedding for document ${doc.id}:`,
-            error
-          );
-          throw new Error("Invalid embedding format");
-        }
-      }
-
-      if (parsedEmbedding.length === 0) {
-        throw new Error("Document does not have valid embeddings");
-      }
-
-      const processedDocument: DocumentWithEmbedding = {
-        id: doc.id,
-        title: doc.title,
-        text: doc.text,
-        embedding: parsedEmbedding,
-        collectionId: doc.collectionId,
+      const processedDocument: DocumentForNotNot = {
+        id: document.id,
+        title: document.title,
+        text: document.text,
+        collectionId: document.collectionId,
       };
 
       // Generate not-nots for this single document
@@ -388,22 +293,11 @@ export const notNotRouter = createTRPCRouter({
         },
       });
 
-      // Get count of documents with embeddings using raw SQL
-      const documentsWithEmbeddingsResult = await ctx.db.$queryRaw<
-        Array<{ count: bigint }>
-      >`
-        SELECT COUNT(*) as count
-        FROM "Document"
-        WHERE "collection_id" = ${input.collectionId}
-        AND embedding IS NOT NULL
-      `;
-
-      const documentsWithEmbeddingsCount = Number(
-        documentsWithEmbeddingsResult[0]?.count ?? 0
-      );
+      // Get count of documents in the collection
+      const documentCount = collection.documents.length;
 
       // Check if we have enough documents for generation
-      const eligibleForGeneration = documentsWithEmbeddingsCount >= 1;
+      const eligibleForGeneration = documentCount >= 1;
 
       // Check if generation is needed (new documents since last generation)
       let generationNeeded = false;
@@ -419,7 +313,7 @@ export const notNotRouter = createTRPCRouter({
       return {
         eligibleForGeneration,
         generationNeeded,
-        documentCount: documentsWithEmbeddingsCount,
+        documentCount: documentCount,
         lastGenerationAt: latestNotNot?.createdAt || null,
         lastGenerationMetadata: latestNotNot?.metadata || null,
       };

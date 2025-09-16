@@ -7,11 +7,10 @@
 import OpenAI from "openai";
 import { env } from "~/env";
 
-export interface DocumentWithEmbedding {
+export interface DocumentForNotNot {
   id: string;
   title: string;
   text: string;
-  embedding: number[];
   collectionId: string;
 }
 
@@ -76,7 +75,7 @@ If the document doesn't contain clear not-nots, return: []`;
  * Analyzes a single document using OpenAI to identify potential not-nots
  */
 export async function analyzeDocumentForNotNots(
-  document: DocumentWithEmbedding
+  document: DocumentForNotNot
 ): Promise<NotNotCandidate[]> {
   if (!env.OPENAI_API_KEY) {
     throw new Error("OpenAI API key is required for not-not generation");
@@ -153,7 +152,7 @@ Based on Furst's framework, identify 0-3 potential not-not situations where user
  * Main function to generate not-nots from a collection of documents
  */
 export async function generateNotNotsFromDocuments(
-  documents: DocumentWithEmbedding[]
+  documents: DocumentForNotNot[]
 ): Promise<NotNotCandidate[]> {
   if (documents.length === 0) {
     console.log("No documents provided for not-not generation");
@@ -162,20 +161,12 @@ export async function generateNotNotsFromDocuments(
 
   console.log(`Starting not-not generation for ${documents.length} documents`);
 
-  // Filter out documents without embeddings
-  const documentsWithEmbeddings = documents.filter(
-    (doc) =>
-      doc.embedding && Array.isArray(doc.embedding) && doc.embedding.length > 0
-  );
-
-  console.log(
-    `\n🤖 Starting OpenAI analysis of ${documentsWithEmbeddings.length} documents`
-  );
+  console.log(`\n🤖 Starting OpenAI analysis of ${documents.length} documents`);
 
   // Analyze each document for not-nots
   const allNotNotCandidates: NotNotCandidate[] = [];
 
-  for (const document of documentsWithEmbeddings) {
+  for (const document of documents) {
     console.log(
       `\n🧠 Analyzing document "${document.title}" for not-not patterns...`
     );
@@ -202,7 +193,7 @@ export async function generateNotNotsFromDocuments(
   }
 
   console.log(
-    `Generated ${allNotNotCandidates.length} not-not candidates from ${documentsWithEmbeddings.length} documents`
+    `Generated ${allNotNotCandidates.length} not-not candidates from ${documents.length} documents`
   );
   return allNotNotCandidates;
 }
@@ -211,17 +202,13 @@ export async function generateNotNotsFromDocuments(
  * Generate not-nots for a single document (useful when a document is added)
  */
 export async function generateNotNotsForDocument(
-  document: DocumentWithEmbedding
+  document: DocumentForNotNot
 ): Promise<NotNotCandidate[]> {
   console.log(`Generating not-nots for single document: "${document.title}"`);
 
-  if (
-    !document.embedding ||
-    !Array.isArray(document.embedding) ||
-    document.embedding.length === 0
-  ) {
+  if (!document.text || document.text.trim().length === 0) {
     console.log(
-      "Document does not have valid embedding, skipping not-not generation"
+      "Document does not have valid text, skipping not-not generation"
     );
     return [];
   }

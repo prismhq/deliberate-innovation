@@ -1,80 +1,31 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/trpc";
-import { EmbeddingClient } from "~/lib/embedding";
 import { env } from "~/env";
 import {
   generateNotNotsForDocument,
-  type DocumentWithEmbedding,
+  type DocumentForNotNot,
 } from "~/lib/not-not-generator";
 
 /**
- * Helper function to generate NotNots for a document after embedding creation
+ * Helper function to generate NotNots for a document
  */
 async function tryGenerateNotNots(
   ctx: any,
   documentId: string,
   documentTitle: string,
+  documentText: string,
   collectionId: string
 ) {
   try {
-    // Get the document with embedding using raw SQL
-    const documentWithEmbedding = await ctx.db.$queryRaw<
-      Array<{
-        id: string;
-        title: string;
-        text: string;
-        embedding: string | null;
-        collectionId: string;
-      }>
-    >`
-      SELECT id, title, text, embedding::text as embedding, "collection_id" as "collectionId"
-      FROM "Document"
-      WHERE id = ${documentId}
-      AND embedding IS NOT NULL
-    `;
-
-    if (documentWithEmbedding.length === 0) {
-      console.log(
-        `Document ${documentId} does not have embeddings yet, skipping NotNot generation`
-      );
-      return;
-    }
-
-    const doc = documentWithEmbedding[0]!;
-
-    // Parse embedding from string format
-    let parsedEmbedding: number[] = [];
-    if (doc.embedding) {
-      try {
-        const vectorStr = doc.embedding.replace(/[[\]]/g, "").trim();
-        parsedEmbedding = vectorStr
-          .split(",")
-          .map(parseFloat)
-          .filter((n: number) => !isNaN(n));
-      } catch (error) {
-        console.error(`Error parsing embedding for document ${doc.id}:`, error);
-        return;
-      }
-    }
-
-    if (parsedEmbedding.length === 0) {
-      console.log(
-        `Document ${documentId} has invalid embeddings, skipping NotNot generation`
-      );
-      return;
-    }
-
-    const processedDocument: DocumentWithEmbedding = {
-      id: doc.id,
-      title: doc.title,
-      text: doc.text,
-      embedding: parsedEmbedding,
-      collectionId: doc.collectionId,
+    const processedDocument: DocumentForNotNot = {
+      id: documentId,
+      title: documentTitle,
+      text: documentText,
+      collectionId: collectionId,
     };
 
     // Generate NotNots for this document
-    const notNotCandidates =
-      await generateNotNotsForDocument(processedDocument);
+    const notNotCandidates = await generateNotNotsForDocument(processedDocument);
 
     if (notNotCandidates.length > 0) {
       // Save NotNots to database
@@ -144,32 +95,15 @@ export const documentRouter = createTRPCRouter({
         },
       });
 
-      // Generate and store embedding if text is provided
-      if (input.text.trim() && process.env.OPENAI_API_KEY) {
-        try {
-          const embeddingClient = new EmbeddingClient({
-            apiKey: process.env.OPENAI_API_KEY,
-          });
-          const embedding = await embeddingClient.generateEmbedding(input.text);
-
-          // Update document with embedding using raw SQL
-          await ctx.db.$executeRaw`
-            UPDATE "Document"
-            SET embedding = ${JSON.stringify(embedding)}::vector
-            WHERE id = ${document.id}
-          `;
-
-          // Generate NotNots for this document now that it has an embedding
-          await tryGenerateNotNots(
-            ctx,
-            document.id,
-            document.title,
-            input.collectionId
-          );
-        } catch (error) {
-          console.error("Failed to generate embedding:", error);
-          // Document is still created successfully even if embedding fails
-        }
+      // Generate NotNots for this document if text is provided
+      if (input.text.trim()) {
+        await tryGenerateNotNots(
+          ctx,
+          document.id,
+          document.title,
+          input.text,
+          input.collectionId
+        );
       }
 
       return document;
@@ -227,39 +161,19 @@ export const documentRouter = createTRPCRouter({
         data: filteredUpdateData,
       });
 
-      // Generate embedding if text is being updated
+      // Generate NotNots if text is being updated
       if (
         filteredUpdateData.text &&
         typeof filteredUpdateData.text === "string" &&
-        filteredUpdateData.text.trim() &&
-        env.OPENAI_API_KEY
+        filteredUpdateData.text.trim()
       ) {
-        try {
-          const embeddingClient = new EmbeddingClient({
-            apiKey: env.OPENAI_API_KEY!,
-          });
-          const embedding = await embeddingClient.generateEmbedding(
-            filteredUpdateData.text
-          );
-
-          // Update document with embedding using raw SQL
-          await ctx.db.$executeRaw`
-            UPDATE "Document"
-            SET embedding = ${JSON.stringify(embedding)}::vector
-            WHERE id = ${id}
-          `;
-
-          // Generate NotNots for this document now that it has updated embeddings
-          await tryGenerateNotNots(
-            ctx,
-            id,
-            updatedDocument.title,
-            updatedDocument.collectionId
-          );
-        } catch (error) {
-          console.error("Failed to generate embedding:", error);
-          // Continue with update even if embedding fails
-        }
+        await tryGenerateNotNots(
+          ctx,
+          id,
+          updatedDocument.title,
+          filteredUpdateData.text,
+          updatedDocument.collectionId
+        );
       }
 
       return updatedDocument;

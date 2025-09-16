@@ -90,14 +90,13 @@ model Collection {
 }
 
 model Document {
-  id           String              @id @default(cuid())
+  id           String     @id @default(cuid())
   title        String
   text         String
-  collectionId String              @map("collection_id")
-  createdAt    DateTime            @default(now()) @map("created_at")
-  updatedAt    DateTime            @updatedAt @map("updated_at")
-  embedding    Unsupported("vector")?
-  collection   Collection          @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  collectionId String     @map("collection_id")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   notNots      NotNot[]
 
   @@index([collectionId])
