@@ -11,14 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@prism/ui/components/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@prism/ui/components/table";
 import { Button } from "@prism/ui/components/button";
 import {
   RefreshCw,
@@ -208,147 +200,151 @@ export default function NotNotsPage() {
               </div>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
                   {notNots.length} not-not{notNots.length !== 1 ? "s" : ""}{" "}
-                  found
+                  found across {new Set(notNots.map(n => n.document.id)).size} document{new Set(notNots.map(n => n.document.id)).size !== 1 ? "s" : ""}
                 </p>
               </div>
 
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40%]">Title</TableHead>
-                    <TableHead className="w-[25%]">Source Document</TableHead>
-                    <TableHead className="w-[20%]">Generated</TableHead>
-                    <TableHead className="w-[15%]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {notNots.map((notNot) => (
-                    <TableRow key={notNot.id}>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <p className="font-medium leading-tight">
-                            {notNot.title}
-                          </p>
-                          {notNot.description && (
-                            <p className="text-xs text-muted-foreground line-clamp-2">
-                              {notNot.description}
-                            </p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">
-                            {notNot.document.title}
-                          </span>
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 px-2"
-                              >
-                                <Info className="h-3 w-3" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
-                              <DialogHeader>
-                                <DialogTitle>{notNot.title}</DialogTitle>
-                                <DialogDescription>
-                                  Source document and analysis details
-                                </DialogDescription>
-                              </DialogHeader>
-                              <div className="space-y-4">
-                                {notNot.description && (
+              {Object.entries(
+                notNots.reduce((acc, notNot) => {
+                  const docId = notNot.document.id;
+                  if (!acc[docId]) {
+                    acc[docId] = {
+                      document: notNot.document,
+                      notNots: [],
+                    };
+                  }
+                  acc[docId].notNots.push(notNot);
+                  return acc;
+                }, {} as Record<string, { document: any; notNots: any[] }>)
+              ).map(([docId, { document, notNots: docNotNots }]) => (
+                <div key={docId} className="space-y-4">
+                  <div className="flex items-center gap-2 border-b pb-2">
+                    <FileText className="h-5 w-5 text-muted-foreground" />
+                    <h3 className="text-lg font-semibold">{document.title}</h3>
+                    <span className="text-sm text-muted-foreground">
+                      ({docNotNots.length} not-not{docNotNots.length !== 1 ? "s" : ""})
+                    </span>
+                  </div>
+
+                  <div className="space-y-3 pl-7">
+                    {docNotNots.map((notNot) => (
+                      <div key={notNot.id} className="border rounded-lg p-4 space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-2 flex-1">
+                            <h4 className="font-medium leading-tight">
+                              {notNot.title}
+                            </h4>
+                            {notNot.description && (
+                              <p className="text-sm text-muted-foreground">
+                                {notNot.description}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 ml-4">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 px-2"
+                                >
+                                  <Info className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-2xl">
+                                <DialogHeader>
+                                  <DialogTitle>{notNot.title}</DialogTitle>
+                                  <DialogDescription>
+                                    Source document and analysis details
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  {notNot.description && (
+                                    <div>
+                                      <h4 className="text-sm font-medium mb-2">
+                                        Description
+                                      </h4>
+                                      <p className="text-sm text-muted-foreground">
+                                        {notNot.description}
+                                      </p>
+                                    </div>
+                                  )}
                                   <div>
                                     <h4 className="text-sm font-medium mb-2">
-                                      Description
+                                      Source Document
                                     </h4>
-                                    <p className="text-sm text-muted-foreground">
-                                      {notNot.description}
-                                    </p>
-                                  </div>
-                                )}
-                                <div>
-                                  <h4 className="text-sm font-medium mb-2">
-                                    Source Document
-                                  </h4>
-                                  <div className="flex items-center gap-2 text-sm">
-                                    <FileText className="h-4 w-4 text-muted-foreground" />
-                                    {notNot.document.title}
-                                  </div>
-                                </div>
-                                {notNot.metadata && (
-                                  <div>
-                                    <h4 className="text-sm font-medium mb-2">
-                                      Generation Metadata
-                                    </h4>
-                                    <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
-                                      <pre>
-                                        {JSON.stringify(
-                                          notNot.metadata,
-                                          null,
-                                          2
-                                        )}
-                                      </pre>
+                                    <div className="flex items-center gap-2 text-sm">
+                                      <FileText className="h-4 w-4 text-muted-foreground" />
+                                      {notNot.document.title}
                                     </div>
                                   </div>
-                                )}
-                              </div>
-                            </DialogContent>
-                          </Dialog>
+                                  {notNot.metadata && (
+                                    <div>
+                                      <h4 className="text-sm font-medium mb-2">
+                                        Generation Metadata
+                                      </h4>
+                                      <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
+                                        <pre>
+                                          {JSON.stringify(
+                                            notNot.metadata,
+                                            null,
+                                            2
+                                          )}
+                                        </pre>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950 dark:hover:text-red-400"
+                                  disabled={deleteNotNotMutation.isPending}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Delete Not-Not
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete &quot;
+                                    {notNot.title}&quot;? This action cannot be
+                                    undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    className="bg-red-600 text-white hover:bg-red-700 dark:bg-red-900 dark:text-white dark:hover:bg-red-800"
+                                    onClick={() => handleDeleteNotNot(notNot.id)}
+                                  >
+                                    Delete Not-Not
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         </div>
-                      </TableCell>
-                      <TableCell>
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Calendar className="h-3 w-3" />
                           {formatDate(notNot.createdAt)}
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-950 dark:hover:text-red-400"
-                              disabled={deleteNotNotMutation.isPending}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                Delete Not-Not
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete &quot;
-                                {notNot.title}&quot;? This action cannot be
-                                undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                className="bg-red-600 text-white hover:bg-red-700 dark:bg-red-900 dark:text-white dark:hover:bg-red-800"
-                                onClick={() => handleDeleteNotNot(notNot.id)}
-                              >
-                                Delete Not-Not
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
