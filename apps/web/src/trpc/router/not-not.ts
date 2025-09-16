@@ -8,7 +8,7 @@ import {
 
 export const notNotRouter = createTRPCRouter({
   /**
-   * Generate not-nots for a collection by clustering documents and analyzing with OpenAI
+   * Generate not-nots for a collection by analyzing documents with OpenAI
    */
   generateForCollection: protectedProcedure
     .input(z.object({ collectionId: z.string() }))
@@ -48,7 +48,7 @@ export const notNotRouter = createTRPCRouter({
         })
       );
 
-      // Generate not-nots using the clustering service
+      // Generate not-nots using the OpenAI service
       const notNotCandidates =
         await generateNotNotsFromDocuments(processedDocuments);
 

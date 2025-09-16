@@ -231,10 +231,48 @@ export const documentRouter = createTRPCRouter({
         throw new Error("Access denied");
       }
 
-      // Get documents for this collection
+      // Get documents for this collection with notNots count
       return ctx.db.document.findMany({
         where: { collectionId: input.collectionId },
+        include: {
+          _count: {
+            select: {
+              notNots: true,
+            },
+          },
+        },
         orderBy: { createdAt: "desc" },
       });
+    }),
+
+  getByIdWithNotNots: protectedProcedure
+    .input(z.object({ documentId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      // First verify the user has access to this document's collection
+      const document = await ctx.db.document.findUnique({
+        where: { id: input.documentId },
+        include: {
+          collection: {
+            include: {
+              organization: {
+                include: {
+                  members: {
+                    where: { userId: ctx.session.user.id },
+                  },
+                },
+              },
+            },
+          },
+          notNots: {
+            orderBy: { createdAt: "desc" },
+          },
+        },
+      });
+
+      if (!document || document.collection.organization.members.length === 0) {
+        throw new Error("Access denied");
+      }
+
+      return document;
     }),
 });

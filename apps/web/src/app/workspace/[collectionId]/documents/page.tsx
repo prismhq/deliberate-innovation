@@ -47,6 +47,12 @@ export default function DocumentsPage() {
   const [editText, setEditText] = useState("");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
+  // Get document with notNots when editing
+  const { data: documentWithNotNots } = api.document.getByIdWithNotNots.useQuery(
+    { documentId: editingDocument?.id ?? "" },
+    { enabled: !!editingDocument?.id && isEditDialogOpen }
+  );
+
   // Get all documents for this collection
   const { data: documents } = api.document.getByCollectionId.useQuery(
     { collectionId },
@@ -159,6 +165,12 @@ export default function DocumentsPage() {
                 <div key={document.id} className="group space-y-3">
                   {/* Card with text preview */}
                   <div className="relative h-48 bg-gray-50 dark:bg-gray-900 border rounded-lg overflow-hidden cursor-pointer">
+                    {/* Note count in top right */}
+                    {document._count?.notNots > 0 && (
+                      <div className="absolute top-2 right-2 z-10 bg-blue-600 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-medium">
+                        {document._count.notNots}
+                      </div>
+                    )}
                     <div className="absolute inset-0 p-2 overflow-hidden">
                       <div className="font-mono text-sm leading-relaxed text-gray-700 dark:text-gray-300">
                         {document.text || (
@@ -250,20 +262,44 @@ export default function DocumentsPage() {
 
       {/* Edit Document Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh]">
+        <DialogContent className="max-w-7xl max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Edit Document</DialogTitle>
             <DialogDescription>
               {editingDocument?.title || "Untitled Document"}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 min-h-0">
-            <Textarea
-              value={editText}
-              onChange={(e) => setEditText(e.target.value)}
-              className="min-h-[500px] font-mono text-sm resize-none"
-              placeholder="Enter document content..."
-            />
+          <div className="flex-1 min-h-0 flex gap-4">
+            <div className="flex-1">
+              <Textarea
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                className="min-h-[500px] font-mono text-sm resize-none"
+                placeholder="Enter document content..."
+              />
+            </div>
+            <div className="w-80 flex-shrink-0">
+              <h3 className="font-semibold mb-3 text-sm">Generated Notes</h3>
+              <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                {documentWithNotNots?.notNots && documentWithNotNots.notNots.length > 0 ? (
+                  documentWithNotNots.notNots.map((notNot) => (
+                    <div
+                      key={notNot.id}
+                      className="p-3 border rounded-lg bg-gray-50 dark:bg-gray-900"
+                    >
+                      <h4 className="font-medium text-sm mb-1">{notNot.title}</h4>
+                      {notNot.description && (
+                        <p className="text-xs text-muted-foreground">{notNot.description}</p>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-muted-foreground italic">
+                    No notes generated for this document yet.
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button

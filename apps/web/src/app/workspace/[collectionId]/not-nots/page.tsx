@@ -152,8 +152,7 @@ export default function NotNotsPage() {
                 Not-Nots
               </CardTitle>
               <CardDescription>
-                Authentic demand patterns discovered through document clustering
-                analysis
+                Authentic demand patterns discovered through document analysis
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -202,8 +201,8 @@ export default function NotNotsPage() {
                 </p>
                 {generationStatus?.eligibleForGeneration && (
                   <p>
-                    If none are generated, add more documents as current documents may
-                    not reveal clear not-not patterns.
+                    If none are generated, add more documents as current
+                    documents may not reveal clear not-not patterns.
                   </p>
                 )}
               </div>
