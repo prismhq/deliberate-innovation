@@ -198,11 +198,11 @@ export default function NotNotsPage() {
                 <p>
                   {generationStatus?.eligibleForGeneration
                     ? "Click 'Generate Not-Nots' to discover authentic demand patterns in your documents."
-                    : `Add 5 or more documents with embeddings to enable not-not generation.`}
+                    : `Add 1 or more documents with embeddings to enable not-not generation.`}
                 </p>
                 {generationStatus?.eligibleForGeneration && (
                   <p>
-                    If none are generated, do more DPIs as current clusters may
+                    If none are generated, add more documents as current documents may
                     not reveal clear not-not patterns.
                   </p>
                 )}
@@ -221,7 +221,7 @@ export default function NotNotsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[40%]">Title</TableHead>
-                    <TableHead className="w-[25%]">Supporting Docs</TableHead>
+                    <TableHead className="w-[25%]">Source Document</TableHead>
                     <TableHead className="w-[20%]">Generated</TableHead>
                     <TableHead className="w-[15%]">Actions</TableHead>
                   </TableRow>
@@ -245,73 +245,64 @@ export default function NotNotsPage() {
                         <div className="flex items-center gap-1">
                           <FileText className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm">
-                            {notNot.supportingDocumentCount}
+                            {notNot.document.title}
                           </span>
-                          {notNot.supportingDocuments.length > 0 && (
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 px-2"
-                                >
-                                  <Info className="h-3 w-3" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-2xl">
-                                <DialogHeader>
-                                  <DialogTitle>{notNot.title}</DialogTitle>
-                                  <DialogDescription>
-                                    Supporting documents and analysis details
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-4">
-                                  {notNot.description && (
-                                    <div>
-                                      <h4 className="text-sm font-medium mb-2">
-                                        Description
-                                      </h4>
-                                      <p className="text-sm text-muted-foreground">
-                                        {notNot.description}
-                                      </p>
-                                    </div>
-                                  )}
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2"
+                              >
+                                <Info className="h-3 w-3" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl">
+                              <DialogHeader>
+                                <DialogTitle>{notNot.title}</DialogTitle>
+                                <DialogDescription>
+                                  Source document and analysis details
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                {notNot.description && (
                                   <div>
                                     <h4 className="text-sm font-medium mb-2">
-                                      Supporting Documents
+                                      Description
                                     </h4>
-                                    <div className="space-y-1">
-                                      {notNot.supportingDocuments.map((doc) => (
-                                        <div
-                                          key={doc.id}
-                                          className="flex items-center gap-2 text-sm"
-                                        >
-                                          <FileText className="h-4 w-4 text-muted-foreground" />
-                                          {doc.title}
-                                        </div>
-                                      ))}
+                                    <p className="text-sm text-muted-foreground">
+                                      {notNot.description}
+                                    </p>
+                                  </div>
+                                )}
+                                <div>
+                                  <h4 className="text-sm font-medium mb-2">
+                                    Source Document
+                                  </h4>
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <FileText className="h-4 w-4 text-muted-foreground" />
+                                    {notNot.document.title}
+                                  </div>
+                                </div>
+                                {notNot.metadata && (
+                                  <div>
+                                    <h4 className="text-sm font-medium mb-2">
+                                      Generation Metadata
+                                    </h4>
+                                    <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
+                                      <pre>
+                                        {JSON.stringify(
+                                          notNot.metadata,
+                                          null,
+                                          2
+                                        )}
+                                      </pre>
                                     </div>
                                   </div>
-                                  {notNot.clusterMetadata && (
-                                    <div>
-                                      <h4 className="text-sm font-medium mb-2">
-                                        Cluster Analysis
-                                      </h4>
-                                      <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
-                                        <pre>
-                                          {JSON.stringify(
-                                            notNot.clusterMetadata,
-                                            null,
-                                            2
-                                          )}
-                                        </pre>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </DialogContent>
-                            </Dialog>
-                          )}
+                                )}
+                              </div>
+                            </DialogContent>
+                          </Dialog>
                         </div>
                       </TableCell>
                       <TableCell>

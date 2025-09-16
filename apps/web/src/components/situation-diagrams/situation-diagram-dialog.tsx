@@ -110,7 +110,7 @@ export function SituationDiagramDialog({
         channels: initialData?.channels || [],
       });
     }
-  }, [open, initialData, form, existingPeople]);
+  }, [open, initialData, form]);
 
   const handleSubmit = (data: FormData) => {
     // Get titles of connected people to filter out from relations array

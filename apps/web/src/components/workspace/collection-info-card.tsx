@@ -66,37 +66,53 @@ export function CollectionInfoCard({
         <div className="flex items-center justify-between gap-10">
           <div className="flex items-center gap-4">
             {isEditing ? (
-              <CardTitle className="prism-text-l-semibold">
+              <CardTitle className="prism-text-s-semibold">
                 <Input
                   value={editingName}
                   onChange={(e) => setEditingName(e.target.value)}
                   placeholder="Enter a name for this collection"
+                  className="h-8 text-xs md:text-xs"
                 />
               </CardTitle>
             ) : (
-              <CardTitle className="prism-text-l-semibold">
+              <CardTitle className="prism-text-s-semibold">
                 {name || "Untitled"}
               </CardTitle>
             )}
             {!isEditing ? (
-              <Button variant="ghost" size="sm" onClick={handleStartEdit}>
-                <Edit />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleStartEdit}
+                className="text-xs"
+              >
+                <Edit className="h-3 w-3" />
               </Button>
             ) : (
               <div className="flex items-center gap-2">
-                <Button size="sm" onClick={handleSave}>
-                  <Save className="h-4 w-4 mr-2" />
+                <Button size="sm" onClick={handleSave} className="text-xs">
+                  <Save className="h-3 w-3 mr-1" />
                   Save
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleCancel}>
-                  <X className="h-4 w-4 mr-2" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancel}
+                  className="text-xs"
+                >
+                  <X className="h-3 w-3 mr-1" />
                   Cancel
                 </Button>
               </div>
             )}
           </div>
-          <Button variant="default" size="sm" onClick={onAddPerson}>
-            <Plus className="h-4 w-4 mr-2" />
+          <Button
+            variant="default"
+            size="sm"
+            onClick={onAddPerson}
+            className="text-xs"
+          >
+            <Plus className="h-3 w-3 mr-1" />
             Add Person
           </Button>
         </div>
@@ -115,11 +131,11 @@ export function CollectionInfoCard({
         ) : (
           <div className="space-y-2">
             {description ? (
-              <p className="prism-text-m text-muted-foreground whitespace-pre-wrap">
+              <p className="prism-text-xs text-muted-foreground whitespace-pre-wrap">
                 {description}
               </p>
             ) : (
-              <p className="prism-text-m text-muted-foreground/60 italic">
+              <p className="prism-text-xs text-muted-foreground/60 italic">
                 No description yet. Click edit to add one.
               </p>
             )}

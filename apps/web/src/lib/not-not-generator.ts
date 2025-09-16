@@ -1,8 +1,7 @@
 /**
  * Not-Not Generation Service
  *
- * Implements naive clustering of document embeddings and uses OpenAI to identify
- * "not-nots" based on Merrick Furst's authentic demand framework.
+ * Generates NotNots for individual documents based on Merrick Furst's authentic demand framework.
  */
 
 import OpenAI from "openai";
@@ -16,330 +15,24 @@ export interface DocumentWithEmbedding {
   collectionId: string;
 }
 
-export interface DocumentCluster {
-  centroid: number[];
-  documents: DocumentWithEmbedding[];
-  averageSimilarity: number;
-  clusterIndex: number;
-}
-
 export interface NotNotCandidate {
   title: string;
   description: string;
-  supportingDocuments: string[]; // document IDs
-  clusterMetadata: {
+  documentId: string;
+  metadata: {
     algorithm: string;
     generatedAt: string;
-    documentCount: number;
-    clusterCount: number;
-    clusterStats: {
-      averageSimilarity: number;
-      clusterSizes: number[];
-      clusterIndex: number;
-    };
     generationParams: {
-      similarityThreshold: number;
-      minClusterSize: number;
+      model: string;
+      temperature: number;
     };
   };
-}
-
-export interface ClusteringResult {
-  clusters: DocumentCluster[];
-  totalDocuments: number;
-  averageClusterSimilarity: number;
-}
-
-/**
- * Calculates cosine similarity between two vectors
- */
-function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) {
-    throw new Error("Vectors must have the same length");
-  }
-
-  let dotProduct = 0;
-  let normA = 0;
-  let normB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i]! * b[i]!;
-    normA += a[i]! * a[i]!;
-    normB += b[i]! * b[i]!;
-  }
-
-  const denominator = Math.sqrt(normA) * Math.sqrt(normB);
-  return denominator === 0 ? 0 : dotProduct / denominator;
-}
-
-/**
- * Calculates the centroid (average) of a set of vectors
- */
-function calculateCentroid(vectors: number[][]): number[] {
-  if (vectors.length === 0) return [];
-
-  const dimensions = vectors[0]?.length ?? 0;
-  const centroid = new Array(dimensions).fill(0);
-
-  for (const vector of vectors) {
-    for (let i = 0; i < dimensions; i++) {
-      centroid[i]! += vector[i]!;
-    }
-  }
-
-  for (let i = 0; i < dimensions; i++) {
-    centroid[i]! /= vectors.length;
-  }
-
-  return centroid;
-}
-
-/**
- * Performs naive K-means clustering on documents using cosine similarity
- */
-export function clusterDocuments(
-  documents: DocumentWithEmbedding[],
-  options: {
-    similarityThreshold?: number;
-    minClusterSize?: number;
-  } = {}
-): ClusteringResult {
-  const { minClusterSize = 2 } = options;
-
-  if (documents.length < 5) {
-    throw new Error("Need at least 5 documents to perform clustering");
-  }
-
-  // Dynamic K selection: aim for 3-5 clusters
-  const k = Math.min(Math.max(Math.floor(documents.length / 3), 2), 5);
-
-  console.log(
-    `🔍 Starting clustering with ${documents.length} documents, targeting ${k} clusters`
-  );
-
-  // Initialize centroids randomly by selecting k documents
-  const initialCentroidIndices = new Set<number>();
-  while (initialCentroidIndices.size < k) {
-    initialCentroidIndices.add(Math.floor(Math.random() * documents.length));
-  }
-
-  const centroids = Array.from(initialCentroidIndices).map((i) => [
-    ...documents[i]!.embedding,
-  ]);
-  const assignments = new Array(documents.length).fill(0);
-  let changed = true;
-  let iterations = 0;
-  const maxIterations = 20;
-
-  console.log(
-    `🎯 Initial centroids selected from documents: ${Array.from(
-      initialCentroidIndices
-    )
-      .map((i) => `"${documents[i]!.title}"`)
-      .join(", ")}`
-  );
-
-  // K-means iterations
-  while (changed && iterations < maxIterations) {
-    changed = false;
-    iterations++;
-    console.log(`📊 K-means iteration ${iterations}/${maxIterations}`);
-
-    // Assign each document to nearest centroid
-    let assignmentChanges = 0;
-    for (let i = 0; i < documents.length; i++) {
-      let bestCluster = 0;
-      let bestSimilarity = cosineSimilarity(
-        documents[i]!.embedding,
-        centroids[0]!
-      );
-
-      // Calculate similarities to all centroids for detailed logging
-      const similarities = centroids.map((centroid, j) => ({
-        cluster: j,
-        similarity: cosineSimilarity(documents[i]!.embedding, centroid),
-      }));
-
-      for (let j = 1; j < k; j++) {
-        const similarity = cosineSimilarity(
-          documents[i]!.embedding,
-          centroids[j]!
-        );
-        if (similarity > bestSimilarity) {
-          bestSimilarity = similarity;
-          bestCluster = j;
-        }
-      }
-
-      const oldAssignment = assignments[i];
-      if (assignments[i] !== bestCluster) {
-        assignments[i] = bestCluster;
-        changed = true;
-        assignmentChanges++;
-
-        // Log assignment change with reasoning
-        console.log(
-          `   📝 "${documents[i]!.title}" moved: Cluster ${oldAssignment} → Cluster ${bestCluster}`
-        );
-        console.log(
-          `      🎯 Similarities: ${similarities.map((s) => `C${s.cluster}:${(s.similarity * 100).toFixed(1)}%`).join(", ")}`
-        );
-      }
-    }
-
-    if (assignmentChanges > 0) {
-      console.log(
-        `   🔄 ${assignmentChanges} documents reassigned in iteration ${iterations}`
-      );
-    } else {
-      console.log(`   ✅ No changes in iteration ${iterations} - converged!`);
-    }
-
-    // Update centroids
-    for (let j = 0; j < k; j++) {
-      const clusterDocuments = documents.filter((_, i) => assignments[i] === j);
-      if (clusterDocuments.length > 0) {
-        centroids[j] = calculateCentroid(
-          clusterDocuments.map((d) => d.embedding)
-        );
-      }
-    }
-  }
-
-  // Build clusters with statistics
-  const clusters: DocumentCluster[] = [];
-  let totalSimilarity = 0;
-  let validClusters = 0;
-
-  for (let j = 0; j < k; j++) {
-    const clusterDocs = documents.filter((_, i) => assignments[i] === j);
-
-    if (clusterDocs.length >= minClusterSize) {
-      // Calculate average intra-cluster similarity
-      let clusterSimilaritySum = 0;
-      let pairCount = 0;
-
-      for (let x = 0; x < clusterDocs.length; x++) {
-        for (let y = x + 1; y < clusterDocs.length; y++) {
-          clusterSimilaritySum += cosineSimilarity(
-            clusterDocs[x]!.embedding,
-            clusterDocs[y]!.embedding
-          );
-          pairCount++;
-        }
-      }
-
-      const averageSimilarity =
-        pairCount > 0 ? clusterSimilaritySum / pairCount : 1.0;
-
-      const cluster = {
-        centroid: centroids[j] ?? [],
-        documents: clusterDocs,
-        averageSimilarity,
-        clusterIndex: j,
-      };
-
-      clusters.push(cluster);
-
-      // Log detailed cluster information
-      console.log(`\n🎯 Cluster ${j}:`);
-      console.log(`   📄 Documents: ${clusterDocs.length}`);
-      console.log(
-        `   🎪 Average Similarity: ${(averageSimilarity * 100).toFixed(1)}%`
-      );
-
-      // Show document titles with assignment reasoning
-      console.log(`   📝 Document assignments:`);
-      clusterDocs.forEach((doc, idx) => {
-        // Calculate this document's similarity to all centroids for assignment reasoning
-        const docSimilarities = centroids
-          .map((centroid, cIdx) => ({
-            cluster: cIdx,
-            similarity: cosineSimilarity(doc.embedding, centroid),
-          }))
-          .sort((a, b) => b.similarity - a.similarity);
-
-        console.log(`      ${idx + 1}. "${doc.title}"`);
-        console.log(
-          `         🎯 Centroid similarities: ${docSimilarities.map((s) => `C${s.cluster}:${(s.similarity * 100).toFixed(1)}%`).join(", ")}`
-        );
-      });
-
-      // Show pairwise similarities within cluster
-      if (clusterDocs.length > 1) {
-        console.log(`   🔗 Pairwise similarities within cluster:`);
-        for (let x = 0; x < clusterDocs.length; x++) {
-          for (let y = x + 1; y < clusterDocs.length; y++) {
-            const pairSimilarity = cosineSimilarity(
-              clusterDocs[x]!.embedding,
-              clusterDocs[y]!.embedding
-            );
-            console.log(
-              `      "${clusterDocs[x]!.title}" ↔ "${clusterDocs[y]!.title}": ${(pairSimilarity * 100).toFixed(1)}%`
-            );
-          }
-        }
-      }
-
-      totalSimilarity += averageSimilarity;
-      validClusters++;
-    }
-  }
-
-  const result = {
-    clusters,
-    totalDocuments: documents.length,
-    averageClusterSimilarity:
-      validClusters > 0 ? totalSimilarity / validClusters : 0,
-  };
-
-  // Show cross-cluster boundary analysis
-  if (clusters.length > 1) {
-    console.log(`\n🌉 Cross-cluster boundary analysis:`);
-    for (let i = 0; i < clusters.length; i++) {
-      for (let j = i + 1; j < clusters.length; j++) {
-        const cluster1 = clusters[i]!;
-        const cluster2 = clusters[j]!;
-
-        // Find the most similar pair across clusters
-        let maxCrossSimilarity = -1;
-        let mostSimilarPair = { doc1: "", doc2: "" };
-
-        for (const doc1 of cluster1.documents) {
-          for (const doc2 of cluster2.documents) {
-            const similarity = cosineSimilarity(doc1.embedding, doc2.embedding);
-            if (similarity > maxCrossSimilarity) {
-              maxCrossSimilarity = similarity;
-              mostSimilarPair = { doc1: doc1.title, doc2: doc2.title };
-            }
-          }
-        }
-
-        console.log(
-          `   Cluster ${i} ↔ Cluster ${j}: Max cross-similarity ${(maxCrossSimilarity * 100).toFixed(1)}%`
-        );
-        console.log(
-          `      Most similar pair: "${mostSimilarPair.doc1}" ↔ "${mostSimilarPair.doc2}"`
-        );
-      }
-    }
-  }
-
-  console.log(`\n✅ Clustering complete:`);
-  console.log(`   📊 Total clusters: ${clusters.length}`);
-  console.log(`   📄 Total documents: ${documents.length}`);
-  console.log(
-    `   🎪 Average similarity: ${(result.averageClusterSimilarity * 100).toFixed(1)}%`
-  );
-  console.log(`   🔄 Iterations: ${iterations}`);
-
-  return result;
 }
 
 /**
  * System prompt for OpenAI to identify not-nots based on Merrick Furst's framework
  */
-const NOT_NOT_SYSTEM_PROMPT = `You are an expert innovation analyst trained in Merrick Furst's "Deliberate Innovation" framework. Your task is to analyze clusters of documents to identify "not-nots" - situations where users "cannot not" engage with a solution due to authentic demand.
+const NOT_NOT_SYSTEM_PROMPT = `You are an expert innovation analyst trained in Merrick Furst's "Deliberate Innovation" framework. Your task is to analyze individual documents to identify potential "not-nots" - situations where users "cannot not" engage with a solution due to authentic demand.
 
 CRITICAL FRAMEWORK UNDERSTANDING:
 A "not-not" exists when someone is put in a situation and they cannot not buy/use the solution. This is authentic demand - the opposite of customer indifference.
@@ -367,22 +60,24 @@ AVOID FLAGGING:
 - Features users "like" but can live without
 - Solutions to problems that don't create behavioral lock-in
 
-Your response must be a JSON object with:
-{
-  "title": "Specific situation where users cannot not engage",
-  "description": "Detailed explanation of why this represents authentic demand - what makes the alternative unthinkable/unacceptable",
-  "confidence": 0.85,
-  "reasoning": "Why this cluster represents a true not-not vs normal behavior"
-}
+Your response must be a JSON array of 0-3 potential not-nots found in the document:
+[
+  {
+    "title": "Specific situation where users cannot not engage",
+    "description": "Detailed explanation of why this represents authentic demand - what makes the alternative unthinkable/unacceptable",
+    "confidence": 0.85,
+    "reasoning": "Why this represents a true not-not vs normal behavior"
+  }
+]
 
-If the cluster doesn't represent a clear not-not, return: {"title": null, "confidence": 0, "reasoning": "No authentic demand pattern detected"}`;
+If the document doesn't contain clear not-nots, return: []`;
 
 /**
- * Analyzes a document cluster using OpenAI to identify potential not-nots
+ * Analyzes a single document using OpenAI to identify potential not-nots
  */
-export async function analyzeClusterForNotNot(
-  cluster: DocumentCluster
-): Promise<NotNotCandidate | null> {
+export async function analyzeDocumentForNotNots(
+  document: DocumentWithEmbedding
+): Promise<NotNotCandidate[]> {
   if (!env.OPENAI_API_KEY) {
     throw new Error("OpenAI API key is required for not-not generation");
   }
@@ -391,23 +86,12 @@ export async function analyzeClusterForNotNot(
     apiKey: env.OPENAI_API_KEY,
   });
 
-  // Build analysis prompt from cluster documents
-  const documentsText = cluster.documents
-    .map(
-      (doc) =>
-        `Document: "${doc.title}"\nContent: ${doc.text.substring(0, 1000)}${doc.text.length > 1000 ? "..." : ""}\n`
-    )
-    .join("\n");
+  const prompt = `Analyze this document for authentic demand patterns ("not-nots"):
 
-  const prompt = `Analyze this cluster of ${cluster.documents.length} related documents for authentic demand patterns ("not-nots"):
+Document: "${document.title}"
+Content: ${document.text.substring(0, 2000)}${document.text.length > 2000 ? "..." : ""}
 
-${documentsText}
-
-Cluster Statistics:
-- Average similarity: ${(cluster.averageSimilarity * 100).toFixed(1)}%
-- Documents: ${cluster.documents.length} items
-
-Based on Furst's framework, identify if this cluster reveals a situation where users "cannot not" engage with a solution.`;
+Based on Furst's framework, identify 0-3 potential not-not situations where users "cannot not" engage with a solution.`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -426,50 +110,41 @@ Based on Furst's framework, identify if this cluster reveals a situation where u
     }
 
     // Parse the JSON response
-    let analysis;
+    let analyses: any[];
     try {
-      analysis = JSON.parse(content);
+      analyses = JSON.parse(content);
     } catch {
       console.error("Failed to parse OpenAI response:", content);
-      return null;
+      return [];
     }
 
-    // Check if a valid not-not was identified
-    if (!analysis.title || analysis.confidence < 0.5) {
-      console.log(
-        `Cluster ${cluster.clusterIndex} did not produce a valid not-not:`,
-        analysis.reasoning
-      );
-      return null;
+    if (!Array.isArray(analyses)) {
+      console.error("Expected array response from OpenAI:", content);
+      return [];
     }
 
-    // Build the not-not candidate
-    const notNotCandidate: NotNotCandidate = {
-      title: analysis.title,
-      description: analysis.description,
-      supportingDocuments: cluster.documents.map((doc) => doc.id),
-      clusterMetadata: {
-        algorithm: "naive-kmeans",
-        generatedAt: new Date().toISOString(),
-        documentCount: cluster.documents.length,
-        clusterCount: 1, // This represents one cluster
-        clusterStats: {
-          averageSimilarity: cluster.averageSimilarity,
-          clusterSizes: [cluster.documents.length],
-          clusterIndex: cluster.clusterIndex,
+    // Filter and build not-not candidates
+    const notNotCandidates: NotNotCandidate[] = analyses
+      .filter((analysis) => analysis.title && analysis.confidence >= 0.5)
+      .map((analysis) => ({
+        title: analysis.title,
+        description: analysis.description,
+        documentId: document.id,
+        metadata: {
+          algorithm: "single-document-analysis",
+          generatedAt: new Date().toISOString(),
+          generationParams: {
+            model: "gpt-4",
+            temperature: 0.2,
+          },
         },
-        generationParams: {
-          similarityThreshold: 0.7,
-          minClusterSize: 2,
-        },
-      },
-    };
+      }));
 
-    return notNotCandidate;
+    return notNotCandidates;
   } catch (error) {
-    console.error("Error analyzing cluster for not-not:", error);
+    console.error("Error analyzing document for not-nots:", error);
     throw new Error(
-      `Failed to analyze cluster: ${error instanceof Error ? error.message : "Unknown error"}`
+      `Failed to analyze document: ${error instanceof Error ? error.message : "Unknown error"}`
     );
   }
 }
@@ -480,8 +155,8 @@ Based on Furst's framework, identify if this cluster reveals a situation where u
 export async function generateNotNotsFromDocuments(
   documents: DocumentWithEmbedding[]
 ): Promise<NotNotCandidate[]> {
-  if (documents.length < 5) {
-    console.log("Need at least 5 documents to generate not-nots");
+  if (documents.length === 0) {
+    console.log("No documents provided for not-not generation");
     return [];
   }
 
@@ -493,52 +168,63 @@ export async function generateNotNotsFromDocuments(
       doc.embedding && Array.isArray(doc.embedding) && doc.embedding.length > 0
   );
 
-  if (documentsWithEmbeddings.length < 5) {
-    throw new Error("Need at least 5 documents with valid embeddings");
-  }
-
-  // Perform clustering
-  const clusteringResult = clusterDocuments(documentsWithEmbeddings, {
-    similarityThreshold: 0.7,
-    minClusterSize: 2,
-  });
-
   console.log(
-    `\n🤖 Starting OpenAI analysis of ${clusteringResult.clusters.length} clusters`
+    `\n🤖 Starting OpenAI analysis of ${documentsWithEmbeddings.length} documents`
   );
 
-  // Analyze each cluster for not-nots
-  const notNotCandidates: NotNotCandidate[] = [];
+  // Analyze each document for not-nots
+  const allNotNotCandidates: NotNotCandidate[] = [];
 
-  for (const cluster of clusteringResult.clusters) {
+  for (const document of documentsWithEmbeddings) {
     console.log(
-      `\n🧠 Analyzing cluster ${cluster.clusterIndex} with ${cluster.documents.length} documents for not-not patterns...`
+      `\n🧠 Analyzing document "${document.title}" for not-not patterns...`
     );
 
     try {
-      const notNot = await analyzeClusterForNotNot(cluster);
-      if (notNot) {
-        notNotCandidates.push(notNot);
-        console.log(`✨ Generated not-not: "${notNot.title}"`);
+      const notNots = await analyzeDocumentForNotNots(document);
+      if (notNots.length > 0) {
+        allNotNotCandidates.push(...notNots);
         console.log(
-          `   💡 Description: ${notNot.description.substring(0, 100)}${notNot.description.length > 100 ? "..." : ""}`
+          `✨ Generated ${notNots.length} not-not(s) for "${document.title}"`
         );
+        notNots.forEach((notNot) => {
+          console.log(`   💡 "${notNot.title}"`);
+        });
       } else {
         console.log(
-          `❌ No valid not-not found for cluster ${cluster.clusterIndex}`
+          `❌ No valid not-nots found for document "${document.title}"`
         );
       }
     } catch (error) {
-      console.error(
-        `Failed to analyze cluster ${cluster.clusterIndex}:`,
-        error
-      );
-      // Continue with other clusters even if one fails
+      console.error(`Failed to analyze document "${document.title}":`, error);
+      // Continue with other documents even if one fails
     }
   }
 
   console.log(
-    `Generated ${notNotCandidates.length} not-not candidates from ${clusteringResult.clusters.length} clusters`
+    `Generated ${allNotNotCandidates.length} not-not candidates from ${documentsWithEmbeddings.length} documents`
   );
-  return notNotCandidates;
+  return allNotNotCandidates;
+}
+
+/**
+ * Generate not-nots for a single document (useful when a document is added)
+ */
+export async function generateNotNotsForDocument(
+  document: DocumentWithEmbedding
+): Promise<NotNotCandidate[]> {
+  console.log(`Generating not-nots for single document: "${document.title}"`);
+
+  if (
+    !document.embedding ||
+    !Array.isArray(document.embedding) ||
+    document.embedding.length === 0
+  ) {
+    console.log(
+      "Document does not have valid embedding, skipping not-not generation"
+    );
+    return [];
+  }
+
+  return await analyzeDocumentForNotNots(document);
 }

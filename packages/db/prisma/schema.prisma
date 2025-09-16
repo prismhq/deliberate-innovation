@@ -98,7 +98,7 @@ model Document {
   updatedAt    DateTime            @updatedAt @map("updated_at")
   embedding    Unsupported("vector")?
   collection   Collection          @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  notNotLinks  NotNotDocumentLink[]
+  notNots      NotNot[]
 
   @@index([collectionId])
 }
@@ -121,26 +121,18 @@ model SituationDiagram {
 }
 
 model NotNot {
-  id           String              @id @default(cuid())
+  id           String   @id @default(cuid())
   title        String
   description  String?
-  createdAt    DateTime            @default(now()) @map("created_at")
-  updatedAt    DateTime            @updatedAt @map("updated_at")
-  collectionId String              @map("collection_id")
-  clusterMetadata Json?
-  documentLinks NotNotDocumentLink[]
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  collectionId String   @map("collection_id")
+  documentId   String   @map("document_id")
+  metadata     Json?
+  document     Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@index([collectionId])
-}
-
-model NotNotDocumentLink {
-  notNotId   String
-  documentId String
-
-  notNot     NotNot   @relation(fields: [notNotId], references: [id], onDelete: Cascade)
-  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-
-  @@id([notNotId, documentId])
+  @@index([documentId])
 }
 
 model CollectionMember {
